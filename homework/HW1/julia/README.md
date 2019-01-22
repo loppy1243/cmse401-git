@@ -113,6 +113,6 @@ Platform Info:
 ```
 
 # Improvements
-This code could possibly be sped up with parallelism; specifically, the the updates to the
+This code could possibly be sped up with parallelism; specifically, the updates to the
 position and its derivatives could be done in chunks on separate cores (for large position
 sample size).
