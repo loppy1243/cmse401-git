@@ -1,4 +1,4 @@
-This is a solution in Julia-1.0 of the wave-equation `y\_t = γ\*y\_xx`.
+This is a solution in Julia-1.0 of the wave-equation `y_t(x, t) = γ*y_xx(x, t)`.
 
 # Installation
 ```
@@ -31,10 +31,10 @@ julia> import HW1
 has been run beforehand.
 
 # Running
-To run for $500$ positions between $x=0$ and $x=500$ for $10^6$ times between $t=0$ and $t=10$
-with $\gamma=1$ and
+To run for 500 positions between `x=0` and `x=500` for 10^6 times between `t=0` and `t=10`
+with \gamma=1 and
 
-$$y_0(x) = e^(-(x-5)^2), y_0\dot(x) = 0, y_0\ddot(x) = 0,$$
+`y(x, 0) = e^(-(x-5)^2), y_t(x, 0) = 0, y_tt(x, 0) = 0,`
 
 in your julia prompt type
 
