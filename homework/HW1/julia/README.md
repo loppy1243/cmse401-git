@@ -44,14 +44,14 @@ julia> HW1.main()
 
 For details on how to invoke `HW1.solve()` or `HW1.solve!()` for different inputs, see
 
-```Julia
+`Remove LaTeX from README``Julia
 julia> ?HW1.solve
 julia> ?HW1.solve!
 ```
 
 # Animations
 Two animations generated using [Plots.jl](https://github.com/JuliaPlots/Plots.jl) are provided
-in the file `anim.gif` and `anim2.gif` (two times speed). Further animations may be generated
+in the files `anim.gif` and `anim2.gif` (two times speed). Further animations may be generated
 with `HW1.gen_anim()`; see
 
 ```Julia
