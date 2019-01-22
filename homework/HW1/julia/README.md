@@ -44,7 +44,7 @@ julia> HW1.main()
 
 For details on how to invoke `HW1.solve()` or `HW1.solve!()` for different inputs, see
 
-`Remove LaTeX from README``Julia
+```Julia
 julia> ?HW1.solve
 julia> ?HW1.solve!
 ```
