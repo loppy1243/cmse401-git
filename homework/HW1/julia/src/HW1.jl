@@ -49,7 +49,7 @@ space step size `dx`, and parameter `γ`. All initial times derivatives are
 assumed to be zero.
 
 Either `γ` or `gamma` may be specified; if both are provided, they must be equal
-in the sense of `==`.  If the function `cb(j, y, y_dot, y_ddot, t)` is provided,
+in the sense of `==`. If the function `cb(j, y, y_dot, y_ddot, t)` is provided,
 it is called for each `j`th time `t` in `ts` with the current values of `y` and
 its time derivatives.
 """
@@ -61,6 +61,20 @@ function solve(cb, y0, dx, ts; kws...)
 
     solve!(cb, copy(y0), y_dot, y_ddot, dx, ts; kws...)
 end
+
+"""
+    solve!([cb ,]y, y_dot, y_ddot, dx, ts; γ, gamma)
+
+Solve the wave equation at times `ts` given the initial displacements `y` with
+first and second time derivatives `y_dot` and `y_ddot`, space step size `dx`, and parameter
+`\gamma`.
+
+`y`, `y_dot`, and `y_ddot` are used in-place.  Either `γ` or `gamma` may be
+specified; if both are provided, they must be equal in the sense of `==`. If
+the function `cb(j, y, y_dot, y_ddot, t)` is provided, it is called for each
+`j`th time `t` in `ts` with the current values of `y` and its time derivatives.
+"""
+
 solve!(y, y_dot, y_ddot, dx, ts; kws...) =
     solve!((_...,) -> nothing, y, y_dot, y_ddot, dx, ts; kws...)
 function solve!(cb, y, y_dot, y_ddot, dx, ts; γ, gamma=γ)
@@ -108,10 +122,10 @@ end
 # M[aybe]Integer
 MInteger = Union{Nothing, Integer}
 """
-    gen_anim(; nframes, speed=1, fps)
+    gen_anim(file="anim.gif"; nframes, speed=1, fps)
 
-Generate a GIF of the evolution of the solution to the wave equation sped up by
-a factor of `speed` with framerate `fps` and number of frames `nframes`.
+Save a GIF to `file` of the evolution of the solution to the wave equation sped
+up by a factor of `speed` with framerate `fps` and number of frames `nframes`.
 
 Only one of `nframes` and `fps` may be specified.
 """

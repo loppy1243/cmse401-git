@@ -1,6 +1,4 @@
-This is a solution in Julia-1.0 of the wave-equation
-
-$$\ddot y = \gamma\frac{\mathrm d^2y}{\mathrm dx^2}.$$
+This is a solution in Julia-1.0 of the wave-equation `y\_t = γ\*y\_xx`.
 
 # Installation
 ```
@@ -22,6 +20,16 @@ julia> Pkg.activate(".")
 julia> Pkg.instantiate()
 ```
 
+To run any command later in this README, make sure that
+
+```Julia
+julia> import Pkg
+julia> Pkg.activate(".")
+julia> import HW1
+```
+
+has been run beforehand.
+
 # Running
 To run for $500$ positions between $x=0$ and $x=500$ for $10^6$ times between $t=0$ and $t=10$
 with $\gamma=1$ and
@@ -31,10 +39,23 @@ $$y_0(x) = e^(-(x-5)^2), y_0\dot(x) = 0, y_0\ddot(x) = 0,$$
 in your julia prompt type
 
 ```Julia
-julia> import Pkg
-julia> Pkg.activate(".")
-julia> import HW1
 julia> HW1.main()
+```
+
+For details on how to invoke `HW1.solve()` or `HW1.solve!()` for different inputs, see
+
+```Julia
+julia> ?HW1.solve
+julia> ?HW1.solve!
+```
+
+# Animations
+Two animations generated using [Plots.jl](https://github.com/JuliaPlots/Plots.jl) are provided
+in the file `anim.gif` and `anim2.gif` (two times speed). Further animations may be generated
+with `HW1.gen_anim()`; see
+
+```Julia
+julia> ?HW1.gen_anim
 ```
 
 # Benchmarking
@@ -42,9 +63,6 @@ To bench using [BenchmarkTools.jl](https://github.com/JuliaCI/BenchmarkTools.jl)
 function `HW1.bench()`:
 
 ```Julia
-julia> import Pkg
-julia> Pkg.activate(".")
-julia> import HW1
 julia> HW1.bench()
 Running functions to compile... Done.
 Testing equality of function calls.. Done.
