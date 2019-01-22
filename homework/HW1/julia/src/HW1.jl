@@ -62,19 +62,17 @@ function solve(cb, y0, dx, ts; kws...)
     solve!(cb, copy(y0), y_dot, y_ddot, dx, ts; kws...)
 end
 
-"""
-    solve!([cb ,]y, y_dot, y_ddot, dx, ts; γ, gamma)
+""" solve!([cb ,]y, y_dot, y_ddot, dx, ts; γ, gamma)
 
 Solve the wave equation at times `ts` given the initial displacements `y` with
-first and second time derivatives `y_dot` and `y_ddot`, space step size `dx`, and parameter
-`\gamma`.
+first and second time derivatives `y_dot` and `y_ddot`, space step size `dx`,
+and parameter `γ`.
 
 `y`, `y_dot`, and `y_ddot` are used in-place.  Either `γ` or `gamma` may be
-specified; if both are provided, they must be equal in the sense of `==`. If
-the function `cb(j, y, y_dot, y_ddot, t)` is provided, it is called for each
-`j`th time `t` in `ts` with the current values of `y` and its time derivatives.
+specified; if both are provided, they must be equal in the sense of `==`. If the
+function `cb(j, y, y_dot, y_ddot, t)` is provided, it is called for each `j`th
+time `t` in `ts` with the current values of `y` and its time derivatives.
 """
-
 solve!(y, y_dot, y_ddot, dx, ts; kws...) =
     solve!((_...,) -> nothing, y, y_dot, y_ddot, dx, ts; kws...)
 function solve!(cb, y, y_dot, y_ddot, dx, ts; γ, gamma=γ)
