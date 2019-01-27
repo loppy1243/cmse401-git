@@ -58,7 +58,7 @@ void bench() {
     printf(    "SAMPLES=%d\n", SAMPLES);
     printf(    "%-6s  function                --   %-9s   %-9s\n", "size", "tot", "avg");
     puts(      "--------------------------------------------------------------------------------");
-    for (size_t i; i < 8; ++i) {
+    for (size_t i=0; i < 8; ++i) {
         size_t size = sizes[i];
         double *mat   = malloc((sizeof (double))*size*size);
         double *mat_T = malloc((sizeof (double))*size*size);
