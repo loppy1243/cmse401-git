@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./hw2.bench.x >timings.tbl
-./provided.bench.x >>timings.tbl
+./hw2.bench.x 100 >timings.tbl
+./provided.bench.x 100 >>timings.tbl
 
 mailme timings.tbl
