@@ -1,17 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <string.h>
+#include "bench.h"
 
-#ifdef BENCH
-#include <time.h>
-#include <str
-
-#if !(SAMPLES + 0)
-#error SAMPLES must be a positive integer when benchmarking.
-#endif
-
-#endif
+#define ERR_TOO_MANY_ARGS 1
 
 #define IDX2D(mat, stride, i, j) (mat)[(i)*(stride) + (j)]
 
@@ -46,69 +38,29 @@ void print_mat(double *mat, size_t rows, size_t cols) {
     }
 }
 
-void init_mat(double *mat, size_t rows, size_t cols) {
-    for (size_t i=0; i < rows; ++i) {
-        for (size_t j=0; j < cols; ++j)
-            IDX2D(mat, cols, i, j) = (double) i - (double) j;
-    }
-}
-
 #ifdef BENCH
-size_t size_t_max(size_t a, size_t b) {
-    return a >= b ? a : b;
-}
-
-size_t max_strlen(char **strs, size_t n) {
-    size_t ret = 0;
-    for (size_t i=0; i < n; ++i)
-        ret = size_t_max(ret, strlen(strs[i]));
-    return ret;
-}
-
 void transpose_blocked_16(double *mat, size_t rows, size_t cols, double* mat_T) {
     transpose_blocked(16, mat, rows, cols, mat_T);
 }
 
+#define NFUNCS 2
 static void (*funcs[2])(double *, size_t, size_t, double *) =
     {&transpose, &transpose_blocked_16};
-static void *func_names[2] = {"transpose", "transpose_blocked(16)"};
-static size_t sizes[8] = {200, 1000, 5000, 8000, 10000, 15000, 20000, 40000};
+static char *func_names[2] = {"transpose", "transpose_blocked(16)"};
 
-void bench() {
-    time_t start;
-    double time;
-    size_t name_width = max_strlen(func_names, 2);
-
-    printf("SAMPLES=%d\n", SAMPLES);
-    printf("%-3s   %-*s   %-9s   %-9s\n", "size", name_width, "function", "tot", "avg");
-    puts(  "--------------------------------------------------------------------------------");
-    for (int i=0; i < 8; ++i) {
-        size_t size = sizes[i];
-        double *mat   = malloc((sizeof (double))*size*size);
-        double *mat_T = malloc((sizeof (double))*size*size);
-        init_mat(mat, size, size);
-
-        for (size_t j=0; i < NFUNCS; ++j) {
-            start = clock();
-            for (int n=1; n < SAMPLES; ++n)
-                (*funcs[j])(mat, size, size, mat_T);
-            time = (clock() - start)/(double) CLOCKS_PER_SEC;
-            printf("%5d   %-*s   %.3e   %.3e\n",
-                   (unsigned) size, name_width, func_names[j], time, time/(double) SAMPLES);
-        }
-
-        free(mat_T);
-        free(mat);
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        fprintf(stderr, "Expected 1 argument, found %d. Usage:\n", argc);
+        fprintf(stderr, "    %s <samples>\n", argv[0]);
+        return ERR_TOO_MANY_ARGS;
     }
-}
-#endif
+    int samples = atoi(argv[1]);
 
-#ifdef BENCH
-int main() {
-    bench();
+    bench_transpose(samples, funcs, func_names, NFUNCS);
+
     return 0;
 }
-#else
+#else // ifdef BENCH
 #define ROWS 5
 #define COLS 8
 int main() {
@@ -127,4 +79,4 @@ int main() {
 
     return 0;
 }
-#endif
+#endif // BENCH defined
