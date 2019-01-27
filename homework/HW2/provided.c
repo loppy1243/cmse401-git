@@ -56,6 +56,8 @@ void transposeBase( double *a, int ndra, int nr, int nc, double *b, int ndrb )
     }
 }
 
+#ifdef BENCH
+
 void transpose_wrapper(double *mat, size_t rows, size_t cols, double *mat_T) {
     transpose(mat, rows, rows, cols, mat_T, cols);
 }
@@ -80,3 +82,4 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+#endif // BENCH defined

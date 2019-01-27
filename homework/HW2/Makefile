@@ -3,8 +3,8 @@ WARN := -Wall
 CFLAGS := $(CFLAGS) $(WARN)
 BENCH_CFLAGS := -DBENCH $(CFLAGS)
 
-NAMES := hw2 provided
-BENCH_NAMES := hw2
+NAMES := hw2
+BENCH_NAMES := hw2 provided
 
 EXE_SUFFIX := .x
 BENCH_SUFFIX := .bench
