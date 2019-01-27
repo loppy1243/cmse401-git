@@ -1,16 +1,23 @@
 CC := gcc
 WARN := -Wall
 CFLAGS := $(CFLAGS) $(WARN)
-BENCH_CFLAGS := -DBENCH -DSAMPLES=$(SAMPLES) $(CFLAGS)
+BENCH_CFLAGS := -DBENCH $(CFLAGS)
 
-NAME := hw2
-EXENAME := $(NAME).x
-BENCHNAME := $(NAME).bench.x
+NAMES := hw2 provided
+BENCH_NAMES := hw2
 
-SRC := hw2.c
+EXE_SUFFIX := .x
+BENCH_SUFFIX := .bench
 
-all: $(SRC)
-	$(CC) $(CFLAGS) -o $(EXENAME) $<
+EXES := $(NAMES:%=%$(EXE_SUFFIX))
+BENCH_EXES := $(BENCH_NAMES:%=%$(BENCH_SUFFIX)$(EXE_SUFFIX))
 
-bench: $(SRC)
-	$(CC) $(BENCH_CFLAGS) -o $(BENCHNAME) $<
+all: $(EXES)
+
+bench: $(BENCH_EXES)
+
+%$(EXE_SUFFIX) : %.c
+	$(CC) $(CFLAGS) -o $@ $<
+
+%$(BENCH_SUFFIX)$(EXE_SUFFIX) : %.c
+	$(CC) $(BENCH_CFLAGS) -o $@ $<
