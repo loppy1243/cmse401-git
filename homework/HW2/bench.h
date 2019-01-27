@@ -38,6 +38,7 @@ void bench_transpose(int samples, transpose_func_ptr *funcs, char **func_names, 
     printf("SAMPLES=%d\n", samples);
     printf("%-5s   %-*s   %-9s   %-9s\n", "size", (int) name_width, "function", "tot", "avg");
     puts(  "--------------------------------------------------------------------------------");
+    fflush(stdout);
     for (int i=0; i < 8; ++i) {
         size_t size = sizes[i];
         double *mat   = malloc((sizeof (double))*size*size);
@@ -51,11 +52,13 @@ void bench_transpose(int samples, transpose_func_ptr *funcs, char **func_names, 
             time = (clock() - start)/(double) CLOCKS_PER_SEC;
             printf("%5d   %-*s   %.3e   %.3e\n",
                    (unsigned) size, (int) name_width, func_names[j], time, time/(double) samples);
+            fflush(stdout);
         }
 
         free(mat_T);
         free(mat);
     }
+    fflush(stdout);
 }
 
 #endif // _INCLUDE_BENCH_H defined
