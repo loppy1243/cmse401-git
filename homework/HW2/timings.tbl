@@ -1,45 +1,45 @@
-SAMPLES=100
-size    function                tot         avg      
---------------------------------------------------------------------------------
-  200   transpose               1.000e-02   1.000e-04
-  200   transpose_blocked(16)   3.000e-02   3.000e-04
- 1000   transpose               1.130e+00   1.130e-02
- 1000   transpose_blocked(16)   1.440e+00   1.440e-02
- 5000   transpose               6.503e+01   6.503e-01
- 5000   transpose_blocked(16)   4.637e+01   4.637e-01
- 8000   transpose               1.832e+02   1.832e+00
- 8000   transpose_blocked(16)   1.203e+02   1.203e+00
-10000   transpose               2.815e+02   2.815e+00
-10000   transpose_blocked(16)   1.859e+02   1.859e+00
-15000   transpose               6.900e+02   6.900e+00
-15000   transpose_blocked(16)   4.292e+02   4.292e+00
-20000   transpose               1.182e+03   1.182e+01
-20000   transpose_blocked(16)   7.831e+02   7.831e+00
-SAMPLES=100
-size    function                  tot         avg      
---------------------------------------------------------------------------------
-  200   transpose(provided)       1.000e-02   1.000e-04
-  200   transposeBase(provided)   2.000e-02   2.000e-04
- 1000   transpose(provided)       7.500e-01   7.500e-03
- 1000   transposeBase(provided)   9.600e-01   9.600e-03
- 5000   transpose(provided)       3.622e+01   3.622e-01
- 5000   transposeBase(provided)   6.154e+01   6.154e-01
- 8000   transpose(provided)       9.680e+01   9.680e-01
- 8000   transposeBase(provided)   1.587e+02   1.587e+00
-10000   transpose(provided)       1.470e+02   1.470e+00
-10000   transposeBase(provided)   2.501e+02   2.501e+00
-15000   transpose(provided)       3.353e+02   3.353e+00
-15000   transposeBase(provided)   6.204e+02   6.204e+00
-20000   transpose(provided)       5.978e+02   5.978e+00
-20000   transposeBase(provided)   1.185e+03   1.185e+01
-40000   transpose(provided)       2.603e+03   2.603e+01
-SAMPLES=10
-size    function                tot         avg      
---------------------------------------------------------------------------------
-40000   transpose               8.399e+02   8.399e+01
-40000   transpose_blocked(16)   3.542e+02   3.542e+01
-SAMPLES=10
-size    function                  tot         avg      
---------------------------------------------------------------------------------
-40000   transpose(provided)       2.336e+02   2.336e+01
-40000   transposeBase(provided)   8.343e+02   8.343e+01
+#SAMPLES=100
+#size    function                  tot         avg      
+#-------------------------------------------------------------------------------
+#[transpose]#
+   200   transpose                 1.000e-02   1.000e-04
+  1000   transpose                 1.130e+00   1.130e-02
+  5000   transpose                 6.503e+01   6.503e-01
+  8000   transpose                 1.832e+02   1.832e+00
+ 10000   transpose                 2.815e+02   2.815e+00
+ 15000   transpose                 6.900e+02   6.900e+00
+ 20000   transpose                 1.182e+03   1.182e+01
+ 40000   transpose                 8.399e+02   8.399e+01
+
+
+#[transpose\_blocked(16)]#
+   200   transpose_blocked(16)     3.000e-02   3.000e-04
+  1000   transpose_blocked(16)     1.440e+00   1.440e-02
+  5000   transpose_blocked(16)     4.637e+01   4.637e-01
+  8000   transpose_blocked(16)     1.203e+02   1.203e+00
+ 10000   transpose_blocked(16)     1.859e+02   1.859e+00
+ 15000   transpose_blocked(16)     4.292e+02   4.292e+00
+ 20000   transpose_blocked(16)     7.831e+02   7.831e+00
+ 40000   transpose_blocked(16)     3.542e+02   3.542e+01
+
+
+#[transpose(provided)]#
+   200   transpose(provided)       1.000e-02   1.000e-04
+  1000   transpose(provided)       7.500e-01   7.500e-03
+  5000   transpose(provided)       3.622e+01   3.622e-01
+  8000   transpose(provided)       9.680e+01   9.680e-01
+ 10000   transpose(provided)       1.470e+02   1.470e+00
+ 15000   transpose(provided)       3.353e+02   3.353e+00
+ 20000   transpose(provided)       5.978e+02   5.978e+00
+ 40000   transpose(provided)       2.336e+02   2.336e+01
+
+
+#[transposeBase(provided)]#
+   200   transposeBase(provided)   2.000e-02   2.000e-04
+  1000   transposeBase(provided)   9.600e-01   9.600e-03
+  5000   transposeBase(provided)   6.154e+01   6.154e-01
+  8000   transposeBase(provided)   1.587e+02   1.587e+00
+ 10000   transposeBase(provided)   2.501e+02   2.501e+00
+ 15000   transposeBase(provided)   6.204e+02   6.204e+00
+ 20000   transposeBase(provided)   1.185e+03   1.185e+01
+ 40000   transposeBase(provided)   8.343e+02   8.343e+01
