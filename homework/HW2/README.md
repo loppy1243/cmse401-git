@@ -3,7 +3,9 @@
 # Building
 The code herein is written in C, and the provided Makefile assumes GCC. An
 alternative compiler may be specified like
-```sh make CC=<compiler> [...] ```
+```sh
+make CC=<compiler> [...]
+```
 To build the test output of my `transpose`, run `make`.
 
 To build the benchmarks,
