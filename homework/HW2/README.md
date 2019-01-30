@@ -15,7 +15,7 @@ ones, respectively. Each of these must be run as, e.g.,
 ```sh
 ./transpose.bench.x <N>
 ```
-with outputted timeings averaged over `N` samples.
+with outputted timings averaged over `N` samples.
 
 To generate a plot from a (suitably formatted) file `timings.tbl`, run `make
 plot`. This generates `timings.pdf`.
