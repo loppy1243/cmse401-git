@@ -41,6 +41,8 @@ set multiplot
 set origin 0.0,0.4
 set size 1.0,0.6
 
+funcname_with_eq(n) = \
+    funcnames[n].' -- ('.sprintf("%.2e", 10**b[n]).')n^{'.sprintf("%.2f", a[n]).'}'
 set key left top
 set title 'Transpose Algorithms Comparison' font 'Times,20'
 set ylabel 'Average Time (s)'
@@ -58,10 +60,10 @@ plot [xmin:xmax] for [i=0:nfuncs-1] 'timings.tbl' \
         index i \
         using 1:4 \
         linestyle i+1 \
-        title funcnames[i+1], \
+        title funcname_with_eq(i+1), \
      for [n=1:nfuncs] f(n, x) \
         linestyle n \
-        title sprintf("%.2e", 10**b[n]).'*n**'.sprintf("%.2f", a[n])
+        notitle 
 
 set origin 0.0,0.0
 set size 1.0,0.4
