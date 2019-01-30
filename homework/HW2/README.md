@@ -6,7 +6,7 @@ alternative compiler may be specified like
 ```sh
 make CC=<compiler> [...]
 ```
-To build the test output of my `transpose`, run `make`.
+To build the test output of my `transpose` and `transpose_blocked(16)`, run `make`.
 
 To build the benchmarks,
 run `make bench`. This will generate the files `transpose.bench.x` and
