@@ -47,10 +47,10 @@ There are two subplots in `timings.pdf`. The first is a log-log plot of average
 time vs. matrix size. The second is a chart of `log(speed) = log(t_min/t)` for
 each matrix size, with `speed` relative to the fastest method for that matrix
 size. The fit lines are least-squares fits of the form
-
-$\log t = A\log n + B
-
-for time $t$ and matrix size $n$. My `transpose` is faster than
+```
+log(t) = A*log(n) + B
+```
+for time `t` and matrix size `n`. My `transpose` is faster than
 `tranpose_blocked(16)` until matrix size of 5000x5000; from there
 `transpose_blocked(16)` is ~1.5 times faster, and even 2.4 time faster for a
 matrix size of 40000x40000.
@@ -73,6 +73,7 @@ size reaches a certain threshold.
 
 The fits give us a way to estimate when to switch over. In particular, we have
 
-$(2.18\cdot10^{-10})n_{best}^(2.52) = (3.34\cdot10^{-9}n_{best}^(2.19)$
-
-$\implies n_{best} \approx 3900$
+```
+2.18e-10*n_best^2.52 = 3.34e-9*n_best^2.19
+=> n_best ~ 3900
+```
