@@ -69,7 +69,8 @@ of 5000x5000 they cross.
 # Improvements
 Clearly my `transpose` could be improved by following in the steps of the
 provided `transpose` and switching to the `transpose_blocked` when the matrix
-size reaches a certain threshold.
+size reaches a certain threshold. `transpose_blocked` could also be augmented
+with shared-memory parallelization
 
 The fits give us a way to estimate when to switch over. In particular, we have
 
