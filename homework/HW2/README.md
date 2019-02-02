@@ -1,6 +1,6 @@
-## Transpose Timings
+# Transpose Timings
 
-# Building
+## Building
 The code herein is written in C, and the provided Makefile assumes GCC. An
 alternative compiler may be specified like
 ```sh
@@ -20,13 +20,13 @@ with outputted timings averaged over `N` samples.
 To generate a plot from a (suitably formatted) file `timings.tbl`, run `make
 plot`. This generates `timings.pdf`.
 
-# Provided Functions
+## Provided Functions
 There were two functions provided in the Jupyter notebook, `transpose` and
 `transposeBase`. It would seem that `tranposeBase` is the "cache-unaware"
 function referenced (and mostly equivalent to my `transpose`), and the provided
 `tranpose` is a hybrid between this and a "cache-aware" algorithm.
 
-# Provided Output
+## Provided Output
 A (hand-curated) table `timings.tbl` is provided with outputs from
 `./transpose.bench.x 10` and `./provided.bench.x 10`. If you want to generate
 your own timings and have them work with the provided gnuplot script, follow
@@ -42,7 +42,7 @@ The timings were produced on one core of the HPCC development node
 - RAM: 251GB total.
 - Compiler: GCC 6.4.0
 
-# Results
+## Results
 There are two subplots in `timings.pdf`. The first is a log-log plot of average
 time vs. matrix size. The second is a chart of `log(speed) = log(t_min/t)` for
 each matrix size, with `speed` relative to the fastest method for that matrix
@@ -66,7 +66,7 @@ The fit lines are also consistent with what we expect. The fit for the provided
 starts off below that of `transpose_blocked(16)`, and then past a matrix size
 of 5000x5000 they cross.
 
-# Improvements
+## Improvements
 Clearly my `transpose` could be improved by following in the steps of the
 provided `transpose` and switching to the `transpose_blocked` when the matrix
 size reaches a certain threshold. `transpose_blocked` could also be augmented
