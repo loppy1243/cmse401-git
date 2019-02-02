@@ -70,7 +70,8 @@ of 5000x5000 they cross.
 Clearly my `transpose` could be improved by following in the steps of the
 provided `transpose` and switching to the `transpose_blocked` when the matrix
 size reaches a certain threshold. `transpose_blocked` could also be augmented
-with shared-memory parallelization
+with shared-memory parallelization, doing blocks of the transpose in separate
+threads. This supposedly would only show improvents for fairly large `n`.
 
 The fits give us a way to estimate when to switch over. In particular, we have
 
