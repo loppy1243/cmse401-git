@@ -1,0 +1,4 @@
+# command      portion                                time(s)
+getGiabData.sh total                                  81.95
+               NIST7035_TAAGGCGA_L001_R1_001.fastq.gz 24
+               NIST7035_TAAGGCGA_L001_R2_001.fastq.gz 24
