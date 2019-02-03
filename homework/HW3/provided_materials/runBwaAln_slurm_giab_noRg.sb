@@ -1,0 +1,21 @@
+#!/bin/bash --login
+########## Define Resources Needed with SBATCH Lines ##########
+ 
+#SBATCH --time=10:00:00             # limit of wall clock time - how long the job will run (same as -t)
+#SBATCH --ntasks=8                  # number of tasks - how many tasks (nodes) that you require (same as -n)
+#SBATCH --cpus-per-task=1           # number of CPUs (or cores) per task (same as -c)
+#SBATCH --mem=40G                    # memory required per node - amount of memory (in bytes)
+#SBATCH --job-name Name_of_Job      # you can give your job a name for easier identification (same as -J)
+ 
+ 
+########## Command Lines to Run ##########
+ 
+module load GCC/6.4.0-2.28
+module load OpenMPI/2.1.1
+module load BWA/0.7.17                   ### load necessary modules, e.g.
+
+cd /mnt/scratch/ablackpz/CMSE890304/Session4/ ### change to the directory where your data is located
+ 
+srun -n 8 bwa mem -t 8 Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz ../Session3/NIST7035_TAAGGCGA_L001_R1_paired.fastq.gz ../Session3/NIST7035_TAAGGCGA_L001_R2_paired.fastq.gz > NIST7035_TAAGGCGA_L001_R_paired_aln.sam             ### call your executable
+ 
+scontrol show job $SLURM_JOB_ID     ### write job information to output file
