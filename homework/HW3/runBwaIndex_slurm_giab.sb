@@ -2,7 +2,7 @@
 
 ### Define Resources ###########################################################
 ################################################################################
-#SBATCH --time=24:00:00 --ntasks=1 --cpus-per-task=1 --mem=40G
+#SBATCH --time=24:00:00 --nodes=1 --ntasks=1 --cpus-per-task=1 --mem=40G
 #SBATCH --job-name=Indexing
 
 ### Modules ####################################################################
@@ -23,6 +23,7 @@ is-slurm-job() {
   [[ -n $SLURM_JOB_ID ]]
 }
 
+### Repeat $1 times the string $2
 repeat() {
   printf '%*.0s' "$1" | sed -e "s| |$2|g"
 }
@@ -33,7 +34,7 @@ fi
 
 cmd=(bwa index -a bwtsw ${SEQUENCE_PREFIX}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
 if is-slurm-job; then
-  time srun -n 1 ${cmd[@]}
+  time srun -N 1 ${cmd[@]}
 else
   ${cmd[@]} &
   echo Waiting for process to terminate...
