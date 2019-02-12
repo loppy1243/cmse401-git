@@ -1,23 +1,52 @@
 #!/bin/bash
-########## Define Resources Needed with SBATCH Lines ##########
- 
-#SBATCH --time=********             # limit of wall clock time - how long the job will run (same as -t)
-#SBATCH --ntasks=1                  # number of tasks - how many tasks (nodes) that you require (same as -n)
-#SBATCH --cpus-per-task=1           # number of CPUs (or cores) per task (same as -c)
-#SBATCH --mem=2G                    # memory required per node - amount of memory (in bytes)
-#SBATCH --job-name Name_of_Job      # you can give your job a name for easier identification (same as -J)
- 
- 
-########## Command Lines to Run ##########
 
+### Define Resources ###########################################################
+################################################################################
+#SBATCH --time=24:00:00 --ntasks=1 --cpus-per-task=1 --mem=40G
+#SBATCH --job-name=Indexing
+
+### Modules ####################################################################
+################################################################################
 module purge
 
+## GNU
 module load GNU/6.4.0-2.28 OpenMPI/2.1.1
+
+## Intel
 #module load icc/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
 #module load ifort/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
+
 module load BWA/0.7.17
- 
-#srun -n 1 bwa index -a bwtsw sequences/Homo_sapiens.GRCh38.dna.toplevel.fa.gz
-bwa index -a bwtsw sequences/Homo_sapiens.GRCh38.dna.toplevel.fa.gz
- 
-#scontrol show job $SLURM_JOB_ID
+################################################################################
+
+is-slurm-job() {
+  [[ -n $SLURM_JOB_ID ]]
+}
+
+repeat() {
+  printf '%*.0s' "$1" | sed -e "s| |$2|g"
+}
+
+if [[ -z $SEQUENCE_DIR ]]; then
+  SEQUENCE_DIR=sequences
+fi
+
+cmd=(bwa index -a bwtsw ${SEQUENCE_DIR}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
+if is-slurm-job; then
+  time srun -n 1 ${cmd[@]}
+else
+  ${cmd[@]} &
+  echo Waiting for process to terminate...
+  while kill %%; do
+    sleep 1
+  done
+fi
+
+echo
+echo "### Job Info $(repeat $((80-13)) '#')"
+repeat 80 '#'; echo
+printf "Command Line: %s\n" "$0 $*"
+if is-slurm-job; then
+  sacct --format='Elapsed,MaxRSS' -j $SLURM_JOB_ID
+  scontrol show job $SLURM_JOB_ID
+fi
