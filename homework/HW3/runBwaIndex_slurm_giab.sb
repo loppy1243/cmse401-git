@@ -27,11 +27,11 @@ repeat() {
   printf '%*.0s' "$1" | sed -e "s| |$2|g"
 }
 
-if [[ -z $SEQUENCE_DIR ]]; then
-  SEQUENCE_DIR=sequences
+if [[ -z $SEQUENCE_PREFIX ]]; then
+  SEQUENCE_PREFIX=sequences
 fi
 
-cmd=(bwa index -a bwtsw ${SEQUENCE_DIR}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
+cmd=(bwa index -a bwtsw ${SEQUENCE_PREFIX}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
 if is-slurm-job; then
   time srun -n 1 ${cmd[@]}
 else
