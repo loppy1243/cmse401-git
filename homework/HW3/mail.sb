@@ -6,7 +6,7 @@ job-end() {
   scontrol show job $SLURM_JOB_ID
 }
 
-if ! [[ -v 2 ]]; then
+if (( $# < 2 )) ; then
   echo "Invalid number of arguments: expected at least 2, found $#"
   job-end
 
@@ -14,19 +14,24 @@ if ! [[ -v 2 ]]; then
 fi
 
 mail_interval=$1
+shift
 comma_job_ids=$(IFS=,; echo "$*")
 outfiles_attach=()
 for id in "$@"; do
   outfiles_attach+=("-a" "slurm-$id.out")
 done
 
-msgfile=$(mktemp --tmpdir mail.XXXXXXXX)
+tmp_prefix=$(mktemp --tmpdir -d "$USER${SLURM_JOB_ID:+_slurm-${SLURM_JOB_ID}}.XXXX")
+msgfile=$(mktemp -p "$tmp_prefix" mail.XXXX)
 
 while squeue -o '' -j "$comma_job_ids" 2>&1 >/dev/null; do
-  squeue -o '%A %j %u %M %l %L' -j $SLURM_JOB_ID 2>&1 >$msgfile
-  sstat -j $SLURM_JOB_ID 2>&1 >>$msgfile
-  mail -s "HPCC JOB STATUS: $comma_job_ids" "${outfiles_attach[@]}" <$msgfile
+  squeue -o '%A %j %u %M %l %L' -j $comma_job_ids 2>&1 >$msgfile
+  sstat -j $comma_job_ids 2>&1 >>$msgfile
+  echo "Mailing on $(date)"
+  mail -s "HPCC JOB STATUS: $comma_job_ids" "${outfiles_attach[@]}" "$USER@msu.edu" <$msgfile
   sleep "$mail_interval"
 done
+
+rm -rf "$tmp_prefix"
 
 job-end
