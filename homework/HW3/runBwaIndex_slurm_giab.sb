@@ -46,17 +46,22 @@ mail-loop() {
   done
 }
 
-index_cmd=(bwa index -a bwtsw ${SEQUENCE_PREFIX}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
+refgnm="Homo_sapiens.GRCh38.dna.toplevel.fa.gz"
+tmp_prefix=$(mktemp --tmpdir -d ${USER}_slurm-${SLURM_JOB_ID}.XXX)
+ram_prefix=$(mktemp -p /dev/shm -d ${USER}_slurm-${SLURM_JOB_ID}.XXX)
+mkdir "$tmp_prefix"; mkdir "$ram_prefix"
+cp "$SEQUENCE_PREFIX/$refgnm" "$ram_prefix/$refgnm"
 
+index_cmd=(bwa index -a bwtsw -p "$tmp_prefix" "$ram_prefix/$refgnm")
+
+echo Running indexing job...
 if is-slurm-job; then
   mail-loop &
   mail_loop_pid=$!
 
-  echo Running indexing job...
-  time srun -N 1 index-job
+  time srun -N 1 "${index_cmd[@]}"
 else
-  echo Running indexing job...
-  ${cmd[@]} &
+  "${index_cmd[@]}" &
 
   echo Waiting for process to terminate...
   while kill %%; do
@@ -64,7 +69,10 @@ else
   done
 fi
 
-kill $mail_loop_pid
+cp -R "$tmp_prefix" ./
+rm -rf "$tmp_prefix" "$ram_prefix"
+
+is-slurm-job && kill $mail_loop_pid
 
 echo
 echo "### Job Info $(repeat $((80-13)) '#')"
