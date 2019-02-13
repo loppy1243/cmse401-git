@@ -5,26 +5,12 @@
 #SBATCH --job-name=Indexing
 #SBATCH --time=24:00:00 --nodes=1 --ntasks=1 --cpus-per-task=1 --mem=40G
 #SBATCH --mail-type=BEGIN,FAIL,END
-
-echo "Starting job $SLURM_JOB_ID($SLURM_JOB_NAME)"
 OUTFILE="slurm-$SLURM_JOB_ID.out"
 
+### Option Variables ###########################################################
+################################################################################
 [[ -z $SEQUENCE_PREFIX ]] && SEQUENCE_PREFIX=sequences
 [[ -z $MAIL_INTERVAL ]]   && MAIL_INTERVAL=1h
-
-### Modules ####################################################################
-################################################################################
-module purge
-
-# GNU
-module load GNU/6.4.0-2.28 OpenMPI/2.1.1
-
-# Intel C
-#module load icc/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
-# Intel Fortran
-#module load ifort/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
-
-module load BWA/0.7.17
 ################################################################################
 
 is-slurm-job() {
@@ -46,13 +32,35 @@ mail-loop() {
   done
 }
 
+echo "### Job Info $(repeat $((80-13)) '#')"
+repeat 80 '#'; echo
+echo "Starting job $SLURM_JOB_ID($SLURM_JOB_NAME)"
+printf "Command Line: %s\n" "$0 $*"
+echo Environment:
+env
+repeat 80 '#'; echo
+
+### Modules ####################################################################
+################################################################################
+module purge
+
+# GNU
+module load GNU/6.4.0-2.28 OpenMPI/2.1.1
+
+# Intel C
+#module load icc/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
+# Intel Fortran
+#module load ifort/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
+
+module load BWA/0.7.17
+################################################################################
+
 refgnm="Homo_sapiens.GRCh38.dna.toplevel.fa.gz"
 tmp_prefix=$(mktemp --tmpdir -d ${USER}_slurm-${SLURM_JOB_ID}.XXX)
-ram_prefix=$(mktemp -p /dev/shm -d ${USER}_slurm-${SLURM_JOB_ID}.XXX)
-mkdir "$tmp_prefix"; mkdir "$ram_prefix"
-cp "$SEQUENCE_PREFIX/$refgnm" "$ram_prefix/$refgnm"
+mkdir "$tmp_prefix/output"
+cp "$SEQUENCE_PREFIX/$refgnm" "$tmp_prefix/$refgnm"
 
-index_cmd=(bwa index -a bwtsw -p "$tmp_prefix" "$ram_prefix/$refgnm")
+index_cmd=(bwa index -a bwtsw -p "$tmp_prefix/output" "$tmp_prefix/$refgnm")
 
 echo Running indexing job...
 if is-slurm-job; then
@@ -69,8 +77,8 @@ else
   done
 fi
 
-cp -R "$tmp_prefix" ./
-rm -rf "$tmp_prefix" "$ram_prefix"
+cp -R "$tmp_prefix"/output/* "$SEQUENCE_PREFIX"
+rm -rf "$tmp_prefix"
 
 is-slurm-job && kill $mail_loop_pid
 
