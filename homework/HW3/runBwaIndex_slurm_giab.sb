@@ -2,10 +2,15 @@
 
 ### Define Resources ###########################################################
 ################################################################################
-#SBATCH --time=24:00:00 --nodes=1 --ntasks=1 --cpus-per-task=1 --mem=40G
 #SBATCH --job-name=Indexing
+#SBATCH --time=24:00:00 --nodes=1 --ntasks=1 --cpus-per-task=1 --mem=40G
+#SBATCH --mail-type=BEGIN,FAIL,END
 
 echo "Starting job $SLURM_JOB_ID($SLURM_JOB_NAME)"
+OUTFILE="slurm-$SLURM_JOB_ID.out"
+
+[[ -z $SEQUENCE_PREFIX ]] && SEQUENCE_PREFIX=sequences
+[[ -z $MAIL_INTERVAL ]]   && MAIL_INTERVAL=1h
 
 ### Modules ####################################################################
 ################################################################################
@@ -30,20 +35,32 @@ repeat() {
   printf '%*.0s' "$1" | sed -e "s| |$2|g"
 }
 
-if [[ -z $SEQUENCE_PREFIX ]]; then
-  SEQUENCE_PREFIX=sequences
-fi
+mail-loop() {
+  while true; do
+    sleep $MAIL_INTERVAL
+    echo Mailing update...
+    squeue -o '%A %j %u %M %l %L' -j $SLURM_JOB_ID
+    mailme $OUTFILE
+  done
+}
+
+is-slurm-job && mail-loop &
+mail_loop_pid=$!
 
 cmd=(bwa index -a bwtsw ${SEQUENCE_PREFIX}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
+echo Running indexing job...
 if is-slurm-job; then
   time srun -N 1 ${cmd[@]}
 else
   ${cmd[@]} &
+
   echo Waiting for process to terminate...
   while kill %%; do
     sleep 1
   done
 fi
+
+kill $mail_loop_pid
 
 echo
 echo "### Job Info $(repeat $((80-13)) '#')"
