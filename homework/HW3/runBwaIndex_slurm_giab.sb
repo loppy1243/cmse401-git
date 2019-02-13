@@ -16,11 +16,12 @@ OUTFILE="slurm-$SLURM_JOB_ID.out"
 ################################################################################
 module purge
 
-## GNU
+# GNU
 module load GNU/6.4.0-2.28 OpenMPI/2.1.1
 
-## Intel
+# Intel C
 #module load icc/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
+# Intel Fortran
 #module load ifort/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
 
 module load BWA/0.7.17
@@ -40,18 +41,21 @@ mail-loop() {
     sleep $MAIL_INTERVAL
     echo Mailing update...
     squeue -o '%A %j %u %M %l %L' -j $SLURM_JOB_ID
+    sstat -j $SLURM_JOB_ID
     mailme $OUTFILE
   done
 }
 
-is-slurm-job && mail-loop &
-mail_loop_pid=$!
+index_cmd=(bwa index -a bwtsw ${SEQUENCE_PREFIX}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
 
-cmd=(bwa index -a bwtsw ${SEQUENCE_PREFIX}/Homo_sapiens.GRCh38.dna.toplevel.fa.gz)
-echo Running indexing job...
 if is-slurm-job; then
-  time srun -N 1 ${cmd[@]}
+  mail-loop &
+  mail_loop_pid=$!
+
+  echo Running indexing job...
+  time srun -N 1 index-job
 else
+  echo Running indexing job...
   ${cmd[@]} &
 
   echo Waiting for process to terminate...
