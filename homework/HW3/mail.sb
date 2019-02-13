@@ -1,0 +1,31 @@
+#!/bin/bash
+
+#SBATCH --job-name=MAIL --time=1-00
+
+job-end() {
+  scontrol show job $SLURM_JOB_ID
+}
+
+if ! [[ -v 2 ]]; then
+  echo "Invalid number of arguments: expected at least 2, found $#"
+  job-end
+  return 1
+fi
+
+mail_interval=$1
+comma_job_ids=$(IFS=,; echo "$*")
+outfiles_attach=()
+for id in "$@"; do
+  outfiles_attach+=("-a" "slurm-$id.out")
+done
+
+msgfile=$(mktemp --tempdir mail.XXXXXXXX)
+
+while squeue -o '' -j "$comma_job_ids" 2>&1 >/dev/null; do
+  squeue -o '%A %j %u %M %l %L' -j $SLURM_JOB_ID 2>&1 >$msgfile
+  sstat -j $SLURM_JOB_ID 2>&1 >>$msgfile
+  mail -s "HPCC JOB STATUS: $comma_job_ids" "${outfiles_attach[@]}" <$msgfile
+  sleep "$mail_interval"
+done
+
+job-end
