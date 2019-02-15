@@ -3,7 +3,7 @@
 ### Define Resources ###########################################################
 ################################################################################
 #SBATCH --job-name=Indexing
-#SBATCH --time=00:05:00 --nodes=1 --ntasks=1 --cpus-per-task=1 --mem=40G
+#SBATCH --time=00:05:00 --nodes=1 --ntasks=1 --cpus-per-task=1 --mem=200M
 #SBATCH --mail-type=BEGIN,FAIL,END
 
 ### Option Variables ###########################################################
