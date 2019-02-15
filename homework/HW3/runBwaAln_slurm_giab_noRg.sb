@@ -1,0 +1,90 @@
+#!/bin/bash --login
+
+### Define Resources ###########################################################
+################################################################################
+#SBATCH --job-name Alignment
+#SBATCH --time=00:20:00 --nodes=1 --ntasks=8 --cpus-per-task=1 --mem=40G
+#SBATCH --mail-type=BEGIN,FAIL,END
+
+### Option Variables ###########################################################
+################################################################################
+[[ -z $SEQUENCE_PREFIX ]] && SEQUENCE_PREFIX=sequences
+################################################################################
+ 
+is-slurm-job() {
+  [[ -n $SLURM_JOB_ID ]]
+}
+
+### Repeat $1 times the string $2
+repeat() {
+  printf '%*.0s' "$1" | sed -e "s| |$2|g"
+}
+
+fs-avail() {
+  df -P "$1" | sed -e 1d | awk -e '{ print $4 }'
+}
+
+disk-usage() {
+  du -ks "$1" | awk -e '{ print $1 }'
+}
+
+echo "### Job Info $(repeat $((80-13)) '#')"
+repeat 80 '#'; echo
+echo "Starting job $SLURM_JOB_ID($SLURM_JOB_NAME)"
+printf "Command Line: %s\n" "$0 $*"
+echo
+echo Environment:
+env
+repeat 80 '#'; echo
+
+### Modules ####################################################################
+################################################################################
+module purge
+
+# GNU
+module load GNU/6.4.0-2.28 OpenMPI/2.1.1
+
+# Intel C
+#module load icc/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
+# Intel Fortran
+#module load ifort/2017.4.196-GCC-6.4.0-2.28 impi/2017.3.196
+
+module load BWA/0.7.17
+################################################################################
+
+refgnm='Caenorhabditis_elegans.WBcel235.dna.toplevel.fa.gz'
+datafiles=('DataSet01_Celegans_Paired200Id200Pexp100Cov10E1N0GenomicControl_1.fq.gz' \
+           'DataSet01_Celegans_Paired200Id200Pexp100Cov10E1N0GenomicControl_2.fq.gz')
+outfile='DataSet01_Celegans_Paired200Id200Pexp100Cov10E1N0GenomicControl_1t_aln.sam'
+scratch_prefix="/mnt/scratch/$USER/slurm-${SLURM_JOB_ID:-test}"
+mkdir "$scratch_prefix"
+cp -R "$SEQUENCE_PREFIX"/* "$scratch_prefix/"
+
+pushd "$scratch_prefix"
+if is-slurm-job; then
+  srun -n 8 bwa mem -t 8 "${datafiles[@]}" >"$outfile"
+else
+  bwa mem -t 1 "${datafiles[@]}" >"$outfile" &
+
+  echo Waiting for process to terminate...
+  while kill %%; do
+    sleep 1
+  done
+fi
+popd
+
+if (( $(disk-usage "$scratch_prefix/$outfile") >= $(fs-avail "$SEQUENCE_PREFIX") )); then
+  echo "Not enough space in $SEQUENCE_PREFIX for output."
+  echo "$scratch_prefix preserved"
+elif ! cp "$scratch_prefix/$outfile" "$SEQUENCE_PREFIX/"; then
+  echo "Failed to copy output to $SEQUENCE_PREFIX"
+  echo "$scratch_prefix preserved"
+else
+  rm -rf "$scratch_prefix"
+fi
+ 
+echo
+echo "### Job Info $(repeat $((80-13)) '#')"
+repeat 80 '#'; echo
+sstat -j $SLURM_JOB_ID
+is-slurm-job && scontrol show job $SLURM_JOB_ID
