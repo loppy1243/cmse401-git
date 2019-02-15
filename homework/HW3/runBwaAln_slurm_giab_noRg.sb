@@ -3,12 +3,8 @@
 ### Define Resources ###########################################################
 ################################################################################
 #SBATCH --job-name Alignment
-#SBATCH --time=00:20:00 --nodes=1 --ntasks=8 --cpus-per-task=1 --mem=40G
+#SBATCH --time=00:25:00 --nodes=1 --ntasks=8 --mem=40G
 #SBATCH --mail-type=BEGIN,FAIL,END
-
-### Option Variables ###########################################################
-################################################################################
-[[ -z $SEQUENCE_PREFIX ]] && SEQUENCE_PREFIX=sequences
 ################################################################################
  
 is-slurm-job() {
@@ -32,10 +28,27 @@ echo "### Job Info $(repeat $((80-13)) '#')"
 repeat 80 '#'; echo
 echo "Starting job $SLURM_JOB_ID($SLURM_JOB_NAME)"
 printf "Command Line: %s\n" "$0 $*"
-echo
-echo Environment:
-env
 repeat 80 '#'; echo
+
+### Options ####################################################################
+################################################################################
+
+opts=$(getopt -l no-copy-scratch,delete-scratch,sequence-prefix:,out-prefix: -n "$0" -- "$@")
+eval set -- "$opts"
+COPY_SCRATCH=1
+DELETE_SCRATCH=''
+SEQUENCE_PREFIX=sequences
+OUT_PREFIX=aligned
+while true; do
+  case "$1" in
+    --no-copy-scratch ) COPY_SCRATCH=''; shift ;;
+    --delete-scratch  ) DELETE_SCRATCH=1; shift ;;
+    --sequence-prefix ) SEQUENCE_PREFIX="$2"; shift 2 ;;
+    --out-prefix      ) OUT_PREFIX="$2"; shift 2 ;;
+    --                ) shift; break ;;
+    *                 ) break ;;
+  esac
+done
 
 ### Modules ####################################################################
 ################################################################################
@@ -62,7 +75,8 @@ cp -R "$SEQUENCE_PREFIX"/* "$scratch_prefix/"
 
 pushd "$scratch_prefix"
 if is-slurm-job; then
-  srun -n 8 bwa mem -t 8 "${datafiles[@]}" >"$outfile"
+  TIMEFORMAT=$'\nTHREADS='"$SLURM_NTASKS"$' TIME=%R\n'
+  time srun -n $SLURM_NTASKS bwa mem -t $SLURM_NTASKS "$refgnm" "${datafiles[@]}" >"$outfile"
 else
   bwa mem -t 1 "${datafiles[@]}" >"$outfile" &
 
@@ -70,21 +84,30 @@ else
   while kill %%; do
     sleep 1
   done
+  echo Fake >"$outfile"
 fi
 popd
 
-if (( $(disk-usage "$scratch_prefix/$outfile") >= $(fs-avail "$SEQUENCE_PREFIX") )); then
-  echo "Not enough space in $SEQUENCE_PREFIX for output."
-  echo "$scratch_prefix preserved"
-elif ! cp "$scratch_prefix/$outfile" "$SEQUENCE_PREFIX/"; then
-  echo "Failed to copy output to $SEQUENCE_PREFIX"
-  echo "$scratch_prefix preserved"
-else
+if [[ -n $COPY_SCRATCH ]]; then
+  mkdir -p "$OUT_PREFIX"
+
+  if (( $(disk-usage "$scratch_prefix/$outfile") >= $(fs-avail "$SEQUENCE_PREFIX") )); then
+    echo "Not enough space in $SEQUENCE_PREFIX for output."
+    echo "$scratch_prefix preserved"
+  elif ! cp "$scratch_prefix/$outfile" "$OUT_PREFIX/"; then
+    echo "Failed to copy output to $SEQUENCE_PREFIX"
+    echo "$scratch_prefix preserved"
+  elif [[ -z $DELETE_SCRATCH ]]; then
+    rm -rf "$scratch_prefix"
+  fi
+elif [[ -n $DELETE_SCRATCH ]]; then
   rm -rf "$scratch_prefix"
 fi
  
 echo
 echo "### Job Info $(repeat $((80-13)) '#')"
 repeat 80 '#'; echo
-sstat -j $SLURM_JOB_ID
-is-slurm-job && scontrol show job $SLURM_JOB_ID
+if is-slurm-job; then
+  sstat -j $SLURM_JOB_ID
+  scontrol show job $SLURM_JOB_ID
+fi
