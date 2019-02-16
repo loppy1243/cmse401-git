@@ -3,7 +3,7 @@
 ### Define Resources ###########################################################
 ################################################################################
 #SBATCH --job-name Alignment
-#SBATCH --time=00:25:00 --nodes=1 --ntasks=8 --mem=40G
+#SBATCH --time=00:30:00 --nodes=1 --ntasks=8 --mem=40G
 #SBATCH --mail-type=BEGIN,FAIL,END
 ################################################################################
  
@@ -66,7 +66,7 @@ module load BWA/0.7.17
 ################################################################################
 
 refgnm='Caenorhabditis_elegans.WBcel235.dna.toplevel.fa.gz'
-datafiles=('DataSet01_Celegans_Paired200Id200Pexp100Cov10E1N0GenomicControl_1.fq.gz' \
+datafiles=('DataSet01_Celegans_Paired200Id200Pexp100Cov10E1N0GenomicControl_1.fq.gz'
            'DataSet01_Celegans_Paired200Id200Pexp100Cov10E1N0GenomicControl_2.fq.gz')
 outfile='DataSet01_Celegans_Paired200Id200Pexp100Cov10E1N0GenomicControl_1t_aln.sam'
 scratch_prefix="/mnt/scratch/$USER/slurm-${SLURM_JOB_ID:-test}"
