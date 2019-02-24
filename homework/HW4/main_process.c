@@ -10,6 +10,8 @@
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
 #define max(X,Y) ((X) > (Y) ? (X) : (Y))
 
+#define IDX2D(arr, sz, i, j) (arr)[((i)*sz.width+(j))]
+
 void abort_(const char * s, ...)
 {
         va_list args;
@@ -20,7 +22,7 @@ void abort_(const char * s, ...)
         abort();
 }
 
-char ** process_img(char ** img, char ** output, image_size_t sz, int halfwindow, double thresh)
+char *process_img(char *img, char *output, image_size_t sz, int halfwindow, double thresh)
 {
 START_CLOCK(average_filter);
     //Average Filter 
@@ -31,9 +33,9 @@ START_CLOCK(average_filter);
             for(int rw=max(0,r-halfwindow); rw<min(sz.height,r+halfwindow+1); rw++)
                 for(int cw=max(0,c-halfwindow); cw<min(sz.width,c+halfwindow+1); cw++) {
                     count++;
-                    tot += (double) img[rw][cw];
+                    tot += (double) IDX2D(img, sz, rw, cw);
                 }
-            output[r][c] = (int) (tot/count);
+            IDX2D(output, sz, r, c) = (int) (tot/count);
         }
 STOP_PRINT_CLOCK(average_filter);
 
@@ -41,20 +43,16 @@ STOP_PRINT_CLOCK(average_filter);
     //write_png_file("after_smooth.png",output[0],sz);
 
     //Sobel Filters
-    double xfilter[3][3] =
+    double yfilter[3][3] =
         {-1, 0, 1,
          -2, 0, 2,
          -1, 0, 1};
-    double yfilter[3][3] =
+    double xfilter[3][3] =
         {-1, -2, -1,
           0,  0,  0,
           1,  2,  3};
 
     double * gradient = (double *) malloc(sz.width*sz.height*sizeof(double));
-    double ** g_img = malloc(sz.height * sizeof(double*));
-    for (int r=0; r<sz.height; r++)
-        g_img[r] = &gradient[r*sz.width];
-    
 
 START_CLOCK(filtering);
     // Gradient filter
@@ -64,10 +62,10 @@ START_CLOCK(filtering);
             double Gy = 0;
             for(int rw=0; rw<3; rw++)
                 for(int cw=0; cw<3; cw++) {
-                    Gx +=  ((double) output[r+rw-1][c+cw-1])*xfilter[rw][cw];
-                    Gy +=  ((double) output[r+rw-1][c+cw-1])*yfilter[rw][cw];
+                    Gx += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*xfilter[rw][cw];
+                    Gy += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*yfilter[rw][cw];
                 }
-            g_img[r][c] = sqrt(Gx*Gx+Gy*Gy);
+            IDX2D(gradient, sz, r, c) = sqrt(Gx*Gx+Gy*Gy);
         }
 STOP_PRINT_CLOCK(filtering);
 
@@ -75,10 +73,10 @@ START_CLOCK(threshholding);
     // thresholding
     for(int r=0;r<sz.height;r++)
         for(int c=0;c<sz.width;c++) {
-            if (g_img[r][c] > thresh)
-                output[r][c] = 255;
+            if (IDX2D(gradient, sz, r, c) > thresh)
+                IDX2D(output, sz, r, c) = 255;
             else
-                output[r][c] = 0;
+                IDX2D(output, sz, r, c) = 0;
         }
 STOP_PRINT_CLOCK(threshholding);
 }
@@ -115,22 +113,9 @@ STOP_PRINT_CLOCK(TOT_file_read);
     putchar('\n');
     #endif
 
-START_CLOCK(array_conversion);
-    //make 2D pointer arrays from 1D image arrays
-    char **img = malloc(sz.height * sizeof(char*));
-    for (int r=0; r<sz.height; r++)
-        img[r] = &s_img[r*sz.width];
-    char **output = malloc(sz.height * sizeof(char*));
-    for (int r=0; r<sz.height; r++)
-        output[r] = &o_img[r*sz.width];
-STOP_PRINT_CLOCK(array_conversion);
-
-    #ifdef BENCH
-    putchar('\n');
-    #endif
 START_CLOCK(TOT_processing);
     //Run the main image processing function
-    process_img(img,output,sz,halfwindow,thresh);
+    process_img(s_img,o_img,sz,halfwindow,thresh);
 STOP_PRINT_CLOCK(TOT_processing);
     #ifdef BENCH
     putchar('\n');
