@@ -1,5 +1,8 @@
 all: process 
 
+bench: CFLAGS := -DBENCH $(CFLAGS)
+bench: all
+
 main_process.o: main_process.c
 	gcc $(CFLAGS) -c main_process.c 
 
