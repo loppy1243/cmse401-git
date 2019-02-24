@@ -58,13 +58,20 @@ START_CLOCK(filtering);
     // Gradient filter
     for(int r=1;r<sz.height-1;r++)
         for(int c=1;c<sz.width-1;c++) {
-            double Gx = 0;
-            double Gy = 0;
-            for(int rw=0; rw<3; rw++)
-                for(int cw=0; cw<3; cw++) {
-                    Gx += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*xfilter[rw][cw];
-                    Gy += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*yfilter[rw][cw];
-                }
+            // _GradientTerm
+            #define _GT(rw, cw) IDX2D(output, sz, r+(rw)-1, c+(cw)-1)
+            double const Gx =
+                    -_GT(0, 0) +   _GT(0, 2)
+                + -2*_GT(1, 0) + 2*_GT(1, 2)
+                +   -_GT(2, 0) +   _GT(2, 2);
+            double const Gy =
+                  -_GT(0, 0) + -2*_GT(0, 1) + -_GT(0, 2)
+                +  _GT(2, 0) +  2*_GT(2, 1) +  _GT(2, 2);
+//            for(int rw=0; rw<3; rw++)
+//                for(int cw=0; cw<3; cw++) {
+//                    Gx += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*xfilter[rw][cw];
+//                    Gy += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*yfilter[rw][cw];
+//                }
             IDX2D(gradient, sz, r, c) = sqrt(Gx*Gx+Gy*Gy);
         }
 STOP_PRINT_CLOCK(filtering);
