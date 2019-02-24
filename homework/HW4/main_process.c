@@ -83,7 +83,7 @@ STOP_PRINT_CLOCK(filtering);
 START_CLOCK(threshholding);
     // thresholding
     for(int c=0;c<sz.width;c++)
-        for(int r=0;r<sz.height;r++)
+        for(int r=0;r<sz.height;r++) {
             if (g_img[r][c] > thresh)
                 output[r][c] = 255;
             else

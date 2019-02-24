@@ -21,7 +21,7 @@
 #define STOP_CLOCK(name) IFDEF_BENCH(_STOP_CLOCK(name))
 
 #define _PRINT_CLOCK(name) \
-    printf("CLOCK %s: %gs\n", #name, (name)/(double) CLOCKS_PER_SEC)
+    printf("CLOCK %s: %gs\n", #name, (name)/(double) CLOCKS_PER_SEC);
 #define PRINT_CLOCK(name) IFDEF_BENCH(_PRINT_CLOCK(name))
 
 #define STOP_PRINT_CLOCK(name) STOP_CLOCK(name); PRINT_CLOCK(name);
