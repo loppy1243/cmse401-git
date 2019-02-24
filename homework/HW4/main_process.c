@@ -40,17 +40,17 @@ START_CLOCK(average_filter);
 STOP_PRINT_CLOCK(average_filter);
 
     //write debug image
-    //write_png_file("after_smooth.png",output[0],sz);
+    //write_png_file("after_smooth.png",output,sz);
 
     //Sobel Filters
-    double yfilter[3][3] =
+    double xfilter[3][3] =
         {-1, 0, 1,
          -2, 0, 2,
          -1, 0, 1};
-    double xfilter[3][3] =
+    double yfilter[3][3] =
         {-1, -2, -1,
           0,  0,  0,
-          1,  2,  3};
+          1,  2,  1};
 
     double * gradient = (double *) malloc(sz.width*sz.height*sizeof(double));
 
