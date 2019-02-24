@@ -1,14 +1,44 @@
-#!/bin/sh
+#!/bin/bash
 
-if [ "$#" -lt 1 ]; then
+if (( $# < 1 )); then
   echo "Usage: $0 <timing_set>" >&2
   exit 1
 fi
 
+script=$(cat <<'HERE'
+BEGIN { print "Name", "Reps", "tot_time", "mean_time", "stddev", "%stddev" }
+
+match($0, /^CLOCK (.*):/, name) {
+  if (!(name[1] in times)) {
+    times[name[1]] = 0.0
+    times2[name[1]] += 0.0
+    ntimes[name[1]] = 0
+  }
+
+  times[name[1]] += $3
+  times2[name[1]] += $3^2
+  ntimes[name[1]] += 1
+}
+
+END {
+  for (n in times) {
+    mean = times[n]/ntimes[n]
+    sd = sqrt(times2[n]/ntimes[n] - mean^2)
+    print n,
+          ntimes[n],
+          sprintf("%.3e", times[n]),
+          sprintf("%.3e", mean),
+          sprintf("%.3e", sd),
+          sprintf("%.2f", sd/mean*100)
+  }
+}
+HERE
+)
+
 echo -n "Compiling $1 timings..."
 mkdir -p "timings/compiled/$1"
 for img_f in images/*; do
-  img="$(basename -s.png "$img_f")"
-  awk -f get-timings.awk "timings/raw/$1/$img/"* | column -tR 2,3,4,5,6 >"timings/compiled/$1/$img.dat"
+  img=$(basename -s.png "$img_f")
+  awk -e "$script" "timings/raw/$1/$img/"* | column -tR 2,3,4,5,6 >"timings/compiled/$1/$img.dat"
 done
 echo " Done."
