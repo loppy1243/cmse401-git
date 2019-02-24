@@ -1,4 +1,4 @@
-BEGIN { print "Name", "Reps", "tot_time", "mean_time", "stddev" }
+BEGIN { print "Name", "Reps", "tot_time", "mean_time", "stddev", "%stddev" }
 
 match($0, /^CLOCK (.*):/, name) {
   if (!(name[1] in times)) {
@@ -16,6 +16,11 @@ END {
   for (n in times) {
     mean = times[n]/ntimes[n]
     sd = sqrt(times2[n]/ntimes[n] - mean^2)
-    print n, ntimes[n], times[n], mean, sd
+    print n,
+          ntimes[n],
+          sprintf("%.3e", times[n]),
+          sprintf("%.3e", mean),
+          sprintf("%.3e", sd),
+          sprintf("%.2f", sd/mean*100)
   }
 }

@@ -9,6 +9,6 @@ echo -n "Compiling $1 timings..."
 mkdir -p "timings/compiled/$1"
 for img_f in images/*; do
   img="$(basename -s.png "$img_f")"
-  awk -f get-timings.awk "timings/raw/$1/$img/"* | column -t >"timings/compiled/$1/$img.dat"
+  awk -f get-timings.awk "timings/raw/$1/$img/"* | column -tR 2,3,4,5,6 >"timings/compiled/$1/$img.dat"
 done
 echo " Done."
