@@ -41,21 +41,14 @@ STOP_PRINT_CLOCK(average_filter);
     //write_png_file("after_smooth.png",output[0],sz);
 
     //Sobel Filters
-    double xfilter[3][3];
-    double yfilter[3][3];
-    xfilter[0][0] = -1;
-    xfilter[1][0] = -2;
-    xfilter[2][0] = -1;
-    xfilter[0][1] = 0;
-    xfilter[1][1] = 0;
-    xfilter[2][1] = 0;
-    xfilter[0][2] = 1;
-    xfilter[1][2] = 2;
-    xfilter[2][2] = 1;
-
-    for(int i=0;i<3;i++) 
-        for(int j=0;j<3;j++)
-            yfilter[j][i] = xfilter[i][j];
+    double xfilter[3][3] =
+        {-1, 0, 1,
+         -2, 0, 2,
+         -1, 0, 1};
+    double yfilter[3][3] =
+        {-1, -2, -1,
+          0,  0,  0,
+          1,  2,  3};
 
     double * gradient = (double *) malloc(sz.width*sz.height*sizeof(double));
     double ** g_img = malloc(sz.height * sizeof(double*));
@@ -118,7 +111,9 @@ int main(int argc, char **argv)
 START_CLOCK(TOT_file_read);
     read_png_file(argv[1],s_img,sz);
 STOP_PRINT_CLOCK(TOT_file_read);
+    #ifdef BENCH
     putchar('\n');
+    #endif
 
 START_CLOCK(array_conversion);
     //make 2D pointer arrays from 1D image arrays
@@ -130,12 +125,16 @@ START_CLOCK(array_conversion);
         output[r] = &o_img[r*sz.width];
 STOP_PRINT_CLOCK(array_conversion);
 
+    #ifdef BENCH
     putchar('\n');
+    #endif
 START_CLOCK(TOT_processing);
     //Run the main image processing function
     process_img(img,output,sz,halfwindow,thresh);
 STOP_PRINT_CLOCK(TOT_processing);
+    #ifdef BENCH
     putchar('\n');
+    #endif
 
         //Write out output image using 1D serial pointer
     write_png_file(argv[2],o_img,sz);
