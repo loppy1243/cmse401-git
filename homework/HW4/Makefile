@@ -1,3 +1,5 @@
+CFLAGS := -O3
+
 all: process 
 
 bench: CFLAGS := -DBENCH $(CFLAGS)
