@@ -6,7 +6,7 @@ if (( $# < 1 )); then
 fi
 
 script=$(cat <<'HERE'
-BEGIN { print "Name", "Reps", "tot_time", "mean_time", "stddev", "%stddev" }
+BEGIN { print "Name", "Reps", "tot_time", "mean_time", "stddev", "%err" }
 
 match($0, /^CLOCK (.*):/, name) {
   if (!(name[1] in times)) {
@@ -29,16 +29,27 @@ END {
           sprintf("%.3e", times[n]),
           sprintf("%.3e", mean),
           sprintf("%.3e", sd),
-          sprintf("%.2f", sd/mean*100)
+          sprintf("%.2f", sd/mean^(3.0/2.0)*100)
   }
 }
 HERE
 )
 
 echo -n "Compiling $1 timings..."
-mkdir -p "timings/compiled/$1"
-for img_f in images/*; do
-  img=$(basename -s.png "$img_f")
-  awk -e "$script" "timings/raw/$1/$img/"* | column -tR 2,3,4,5,6 >"timings/compiled/$1/$img.dat"
-done
+if [[ $1 == all ]]; then
+  for set in $(ls timings/raw/); do
+    mkdir -p timings/compiled/"$set"
+    for img_f in images/*; do
+      img=$(basename -s.png "$img_f")
+      awk -e "$script" timings/raw/"$set"/"$img"/* | column -tR $(seq -s, 2 6) \
+          >timings/compiled/"$set"/"$img".dat
+    done
+  done
+else
+  for img_f in images/*; do
+    img=$(basename -s.png "$img_f")
+    awk -e "$script" timings/raw/"$1"/"$img"/* | column -tR $(seq -s, 2 6) \
+        >"timings/compiled/$1/$img.dat"
+  done
+fi
 echo " Done."
