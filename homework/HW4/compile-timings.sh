@@ -46,6 +46,7 @@ if [[ $1 == all ]]; then
     done
   done
 else
+  mkdir -p timings/compiled/"$1"
   for img_f in images/*; do
     img=$(basename -s.png "$img_f")
     awk -e "$script" timings/raw/"$1"/"$img"/* | column -tR $(seq -s, 2 6) \
