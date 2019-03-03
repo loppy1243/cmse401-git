@@ -1,4 +1,4 @@
-CFLAGS := -O3
+CFLAGS := -fopenmp -O3
 
 all: process 
 
