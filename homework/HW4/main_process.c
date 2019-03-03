@@ -29,11 +29,15 @@ START_CLOCK(average_filter);
     //Average Filter 
     for(int r=0;r<sz.height;r++)
         for(int c=0;c<sz.width;c++) {
-            double count = 0;
+            const int rw_min = max(0, r - halfwindow);
+            const int rw_max = min(sz.height, r + halfwindow + 1);
+            const int cw_min = max(0, c - halfwindow);
+            const int cw_max = min(sz.width, c + halfwindow + 1);
+            const double count = (rw_max - rw_min)*(cw_max - cw_min);
+
             double tot = 0;
-            for(int rw=max(0,r-halfwindow); rw<min(sz.height,r+halfwindow+1); rw++)
-                for(int cw=max(0,c-halfwindow); cw<min(sz.width,c+halfwindow+1); cw++) {
-                    count++;
+            for(int rw = rw_min; rw < rw_max; ++rw)
+                for(int cw = cw_min; cw < cw_max; ++cw) {
                     tot += (double) IDX2D(img, sz, rw, cw);
                 }
             IDX2D(output, sz, r, c) = (int) (tot/count);
