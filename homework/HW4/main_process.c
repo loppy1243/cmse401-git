@@ -10,6 +10,7 @@
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
 #define max(X,Y) ((X) > (Y) ? (X) : (Y))
 
+// Indexing 1D array as 2D given image_size_t sz
 #define IDX2D(arr, sz, i, j) (arr)[((i)*sz.width+(j))]
 
 void abort_(const char * s, ...)
@@ -42,17 +43,7 @@ STOP_PRINT_CLOCK(average_filter);
     //write debug image
     //write_png_file("after_smooth.png",output,sz);
 
-    //Sobel Filters
-    double xfilter[3][3] =
-        {-1, 0, 1,
-         -2, 0, 2,
-         -1, 0, 1};
-    double yfilter[3][3] =
-        {-1, -2, -1,
-          0,  0,  0,
-          1,  2,  1};
-
-    double * gradient = (double *) malloc(sz.width*sz.height*sizeof(double));
+    double *gradient = (double *) malloc(sz.width*sz.height*sizeof(double));
 
 START_CLOCK(filtering);
     // Gradient filter
@@ -60,18 +51,13 @@ START_CLOCK(filtering);
         for(int c=1;c<sz.width-1;c++) {
             // _GradientTerm
             #define _GT(rw, cw) IDX2D(output, sz, r+(rw)-1, c+(cw)-1)
-            double const Gx =
-                    -_GT(0, 0) +   _GT(0, 2)
-                + -2*_GT(1, 0) + 2*_GT(1, 2)
-                +   -_GT(2, 0) +   _GT(2, 2);
-            double const Gy =
-                  -_GT(0, 0) + -2*_GT(0, 1) + -_GT(0, 2)
+            const double Gx =
+                -   _GT(0, 0) +   _GT(0, 2)
+                - 2*_GT(1, 0) + 2*_GT(1, 2)
+                -   _GT(2, 0) +   _GT(2, 2);
+            const double Gy =
+                -  _GT(0, 0) + -2*_GT(0, 1) -  _GT(0, 2)
                 +  _GT(2, 0) +  2*_GT(2, 1) +  _GT(2, 2);
-//            for(int rw=0; rw<3; rw++)
-//                for(int cw=0; cw<3; cw++) {
-//                    Gx += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*xfilter[rw][cw];
-//                    Gy += ((double) IDX2D(output, sz, r+rw-1, c+cw-1))*yfilter[rw][cw];
-//                }
             IDX2D(gradient, sz, r, c) = sqrt(Gx*Gx+Gy*Gy);
         }
 STOP_PRINT_CLOCK(filtering);
