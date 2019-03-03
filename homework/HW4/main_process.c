@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
+#include <omp.h>
 #include "png_util.h"
 #include "bench.h"
 
@@ -27,8 +28,9 @@ char *process_img(char *img, char *output, image_size_t sz, int halfwindow, doub
 {
 START_CLOCK(average_filter);
     //Average Filter 
-    for(int r=0;r<sz.height;r++)
-        for(int c=0;c<sz.width;c++) {
+    #pragma omp parallel for schedule(static)
+    for (int r=0; r < sz.height; ++r)
+        for (int c=0 ; c < sz.width; ++c) {
             const int rw_min = max(0, r - halfwindow);
             const int rw_max = min(sz.height, r + halfwindow + 1);
             const int cw_min = max(0, c - halfwindow);
@@ -51,6 +53,7 @@ STOP_PRINT_CLOCK(average_filter);
 
 START_CLOCK(filtering);
     // Gradient filter
+    #pragma omp parallel for schedule(static)
     for(int r=1;r<sz.height-1;r++)
         for(int c=1;c<sz.width-1;c++) {
             // _GradientTerm
@@ -68,6 +71,7 @@ STOP_PRINT_CLOCK(filtering);
 
 START_CLOCK(threshholding);
     // thresholding
+    #pragma omp parallel for schedule(static)
     for(int r=0;r<sz.height;r++)
         for(int c=0;c<sz.width;c++) {
             if (IDX2D(gradient, sz, r, c) > thresh)
@@ -96,6 +100,8 @@ int main(int argc, char **argv)
     //Set optional threshold argument
     if (argc > 4)
         thresh = (double) atoi(argv[4]);
+
+    fprintf(stderr, "Number of available threads: %d\n", omp_get_max_threads());
 
     //Allocate memory for images
     image_size_t sz = get_image_size(argv[1]);
