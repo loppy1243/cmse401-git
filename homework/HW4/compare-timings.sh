@@ -48,8 +48,8 @@ awk -e "$script1" "${files[0]}" >"$tmpdir/table1"
 awk -e "$script2" "${files[1]}" >"$tmpdir/table2"
 join --header -j2 -a1 -a2 "$tmpdir/table1" "$tmpdir/table2" >"$tmpdir/joined"
 
-cat "$tmpdir/joined" | column -tR "7,14"
-echo
+#cat "$tmpdir/joined" | column -tR "7,14"
+#echo
 
 tot_times=($(awk -e '/^CUMULATIVE/ { print $4 }' "${files[@]}"))
 script3=$(cat <<EOF
