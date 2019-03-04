@@ -41,7 +41,7 @@ if [[ $1 == all ]]; then
     mkdir -p timings/compiled/"$set"
     for img_f in images/*; do
       img=$(basename -s.png "$img_f")
-      awk -e "$script" timings/raw/"$set"/"$img"/* | column -tR $(seq -s, 2 6) \
+      awk -e "$script" timings/raw/"$set"/"$img"/* | column -t \
           >timings/compiled/"$set"/"$img".dat
     done
   done
@@ -49,7 +49,7 @@ else
   mkdir -p timings/compiled/"$1"
   for img_f in images/*; do
     img=$(basename -s.png "$img_f")
-    awk -e "$script" timings/raw/"$1"/"$img"/* | column -tR $(seq -s, 2 6) \
+    awk -e "$script" timings/raw/"$1"/"$img"/* | column -t \
         >"timings/compiled/$1/$img.dat"
   done
 fi
