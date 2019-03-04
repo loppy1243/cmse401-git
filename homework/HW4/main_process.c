@@ -28,7 +28,7 @@ char *process_img(char *img, char *output, image_size_t sz, int halfwindow, doub
 {
 START_CLOCK(average_filter);
     //Average Filter 
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(runtime)
     for (int r=0; r < sz.height; ++r)
         for (int c=0 ; c < sz.width; ++c) {
             const int rw_min = max(0, r - halfwindow);
@@ -53,7 +53,7 @@ STOP_PRINT_CLOCK(average_filter);
 
 START_CLOCK(filtering);
     // Gradient filter
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(runtime)
     for(int r=1;r<sz.height-1;r++)
         for(int c=1;c<sz.width-1;c++) {
             // _GradientTerm
@@ -71,7 +71,7 @@ STOP_PRINT_CLOCK(filtering);
 
 START_CLOCK(threshholding);
     // thresholding
-    #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(runtime)
     for(int r=0;r<sz.height;r++)
         for(int c=0;c<sz.width;c++) {
             if (IDX2D(gradient, sz, r, c) > thresh)
