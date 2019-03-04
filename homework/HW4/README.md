@@ -19,8 +19,8 @@ benchmarking build of that code.
 I cannot really begin to explain these results, but 
 Most comparisons were done using `images/earth.png`, since it is the largest and so most
 intensive work load. In the following, I provide commentary on the changes I made along with
-commands using my [tooling](Tooling) that produces the relevant data.  Descriptions of the
-timing sets can be found in [Timing Data](Timing-Data).
+commands using my [tooling](#Tooling) that produces the relevant data.  Descriptions of the
+timing sets can be found in [Timing Data](#Timing-Data).
 
 ## orig vs. row-major
 The first thing I noticed with the original code was that the image loops were in column-major
