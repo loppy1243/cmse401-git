@@ -11,6 +11,10 @@ from this. It's also annoying that the data exploration scripts I wrote are tied
 well; what I should have done was make each timing set its own branch and rebased the changes
 in the scripts onto each of these, but oh well.
 
+You can `git tag` and `git branch` to list tags and branches, and `git checkout
+<tag-or-branch>` to load that version of the code. A simple `make -B bench` will guarantee a
+benchmarking build of that code.
+
 # Chronological Comments on Timing Data
 I cannot really begin to explain these results, but 
 Most comparisons were done using `images/earth.png`, since it is the largest and so most
