@@ -16,10 +16,9 @@ You can `git tag` and `git branch` to list tags and branches, and `git checkout
 benchmarking build of that code.
 
 # Chronological Comments on Timing Data
-I cannot really begin to explain these results, but 
 Most comparisons were done using `images/earth.png`, since it is the largest and so most
 intensive work load. In the following, I provide commentary on the changes I made along with
-commands using my [tooling](#Tooling) that produces the relevant data.  Descriptions of the
+commands using my [tooling](#Tooling) that produces the relevant data. Descriptions of the
 timing sets can be found in [Timing Data](#Timing-Data).
 
 ## orig vs. row-major
@@ -176,7 +175,6 @@ The sets found therein that were run on the HPCC with the `timings.sb` submissio
   all (outer) loops scheduled with `scheduling` and chunk size `chunk-size`.
 - `final`: The final version of the program.
 
-``
 # Tooling
 - `Makefile`
   - Before building, ensure that `libpng` and `openmp` are available.
