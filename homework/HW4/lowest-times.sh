@@ -4,6 +4,18 @@ script=$(cat <<'EOF'
 FNR != 1 {
   names[$1] = 0
 
+  if (prev2_min[$1] == "") {
+    prev2_min_set[$1] = "N/A"
+    prev2_min[$1] = -1 
+    prev2_min_err[$1] = -1
+  }
+
+  if (prev_min[$1] == "") {
+    prev_min_set[$1] = "N/A"
+    prev_min[$1] = -1
+    prev_min_err[$1] = -1
+  }
+
   if (min[$1] == "" || $4 < min[$1]) {
     prev2_min_set[$1] = prev_min_set[$1]
     prev2_min[$1] = prev_min[$1]
