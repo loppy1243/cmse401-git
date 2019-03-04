@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#SBATCH --job-name=HW4-timings --time=2:00:00
+#SBATCH --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=4GB
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80,TIME_LIMIT
+
+module purge
+module load GCCcore/7.3.0 libpng/1.6.34
+
+for n in {0..4}; do
+  k=$(( 2**$n ))
+  srun --exclusive -n1 -c$k bash run-thread-group.sh $k &
+done
+wait
+srun -n1 -c32 bash run-thread-group.sh 32
+
+scontrol show job $SLURM_JOB_ID

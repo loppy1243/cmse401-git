@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#SBATCH --job-name=HW4-final
+#SBATCH --time=00:20:00
+#SBATCH --nodes=1 --ntasks=1 --cpus-per-task=32 --mem=4GB
+
+module purge
+module load GCCcore/7.3.0 libpng/1.6.34
+
+srun bash gen-timings.sh final 40
+
+scontrol show job $SLURM_JOB_ID
