@@ -57,7 +57,7 @@ BEGIN {
   tot_left = ${tot_times[0]}
   tot_right = ${tot_times[1]}
 
-  print "Name", "%$1", "%$2", "diff", "tval"
+  print "Name", "%$1", "%$2", "%diff/1", "%diff/2", "diff", "tval"
 }
 
 FNR >= 3 {
@@ -67,6 +67,8 @@ FNR >= 3 {
   print \$1,
         no_l ? "N/A" : sprintf("%.2f", \$5/tot_left*100),
         no_r ? "N/A" : sprintf("%.2f", \$12/tot_right*100),
+        no_l || no_r ? "N/A" : sprintf("%.2f", (\$5-\$12)/\$5*100),
+        no_l || no_r ? "N/A" : sprintf("%.2f", (\$5-\$12)/\$12*100),
         no_l || no_r ? "N/A" : sprintf("%.3e", \$5-\$12),
         no_l || no_r ? "N/A" : sprintf("%.2f", (\$5-\$12)/sqrt(\$6^2/\$5+\$13^2/\$11))
 }
