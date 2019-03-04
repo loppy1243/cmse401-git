@@ -1,8 +1,8 @@
 # Major Lesson Learned
-Excessive text processing leads to an awful and crippled implementation of a relational
-database written in AWK and taped together with shell scripting. I would have had a much
-better time with this timing data if I had realized this, but hindsight is 20/20 and foresight
-is often non-existent.
+Excessive text processing of timing data leads to an awful and crippled implementation of a
+relational database written in AWK and taped together with shell scripting. I would have had a
+much better time with this timing data if I had realized this, but hindsight is 20/20 and
+foresight is often non-existent.
 
 # Branches and Tags
 You'll notice there are a couple of different git branches and tags; I planned on giving the
