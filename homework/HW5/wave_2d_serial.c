@@ -140,7 +140,7 @@ int main(int argc, char ** argv) {
     STOP_CLOCK(file_io); STOP_CLOCK(total);
 
 #ifdef BENCH
-    fputs("BENCHMARKING\nTOTAL setup file_io simulation\n");
+    fputs("BENCHMARKING\nTOTAL setup file_io simulation\n", stderr);
     fprintf(stderr, "%.3e %.3e %.3e %.3e\n", total_time, setup_time, file_io_time, simulation_time);
 #endif
 

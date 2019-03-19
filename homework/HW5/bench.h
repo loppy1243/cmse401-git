@@ -10,9 +10,9 @@
 #define START_CLOCK(label) \
     clock_gettime(CLOCK_MONOTONIC_RAW, &label##_start)
 #define STOP_CLOCK(label) \
-    clock_gettime(CLOCK_MONOTIONIC_RAW, &label##_end) \
+    clock_gettime(CLOCK_MONOTONIC_RAW, &label##_end); \
     label##_time += (double) (label##_end.tv_sec - label##_start.tv_sec) \
-                    + (double) (label##_end.tv_nsec - label##_start.tv_nsec)*1e-9
+                    + (double) (label##_end.tv_nsec - label##_start.tv_nsec)*1e-9;
 #else
 #define INIT_CLOCK(label)
 #define START_CLOCK(label)
