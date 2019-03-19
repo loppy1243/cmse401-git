@@ -1,3 +1,5 @@
+CFLAGS := $(CFLAGS) -O3
+
 .PHONY: all bench bench_serial bench_cuda images video gif test clean
 
 all: serial cuda
