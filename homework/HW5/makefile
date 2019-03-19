@@ -1,38 +1,27 @@
-.PHONY: all hpcc_modules images video gif test clean
-
-include config.mk
-
-ifneq ($(origin HPCC), undefined)
-	HPCC := 0
-endif
-ifneq ($(HPCC), 0)
-	HPCC := 1
-	HPCC_RULE := hpcc_modules
-endif
+.PHONY: all images video gif test clean
 
 all: serial cuda
 
-ifeq ($(HPCC), 1)
-hpcc_modules:
-	@module purge 
-	@module load GNU/7.3.0 libpng/1.6.34
-endif
-
 wave_2d_serial.o: wave_2d_serial.c
+	$(HPCC_MODULES)
 	gcc -c wave_2d_serial.c 
 
 wave_2d_cuda.o: wave_2d_cuda.cu
+	$(HPCC_MODULES)
 	nvcc -c wave_2d_cuda.cu 
 
 png_util.o: png_util.c
+	$(HPCC_MODULES)
 	gcc -l lpng16 -c png_util.c
 
-serial: wave_2d_serial.o png_util.o $(HPCC_RULE)
+serial: wave_2d_serial.o png_util.o
 	mkdir -p images
+	$(HPCC_MODULES)
 	gcc -o serial -lm -l png16 wave_2d_serial.o png_util.o
 
-cuda: wave_2d_cuda.o png_util.o $(HPCC_RULE)
+cuda: wave_2d_cuda.o png_util.o
 	mkdir -p images
+	$(HPCC_MODULES)
 	nvcc -o cuda -lm -l png16 wave_2d_cuda.o png_util.o
 
 images: serial
