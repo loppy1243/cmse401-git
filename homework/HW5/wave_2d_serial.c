@@ -1,11 +1,32 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include "png_util.h"
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
 #define max(X,Y) ((X) > (Y) ? (X) : (Y))
 
+#ifdef BENCH
+#define INIT_CLOCK(label) \
+    struct timespec label##_start, label##_end; \
+    double label##_time = 0.0;
+#define START_CLOCK(label) \
+    clock_gettime(CLOCK_MONOTONIC_RAW, &label##_start)
+#define STOP_CLOCK(label) \
+    clock_gettime(CLOCK_MONOTIONIC_RAW, &label##_end) \
+    label##_time += (double) (label##_end.tv_sec - label##_start.tv_sec) \
+                    + (double) (label##_end.tv_nsec - label##_start.tv_nsec)*1e-9
+#else
+#define INIT_CLOCK(label)
+#define START_CLOCK(label)
+#define STOP_CLOCK(label)
+#endif
+
+
 int main(int argc, char ** argv) {
+    INIT_CLOCK(setup); INIT_CLOCK(simulation); INIT_CLOCK(file_io); INIT_CLOCK(total);
+
+    START_CLOCK(total); START_CLOCK(setup);
     int nx = 500;
     int ny = 500;
     int nt = 10000; 
@@ -56,8 +77,6 @@ int main(int argc, char ** argv) {
     tmax=20.0;
     dt = (tmax-0.0)/(double)(nt-1);
 
-    printf("nt=%d, dt=%g, frame_skip=%d, fps=%g\n", nt, dt, frame_skip, 1/(dt*frame_skip));
-
     double x,y; 
     for (r=0;r<ny;r++) {
         for (c=0;c<nx;c++) {
@@ -68,7 +87,11 @@ int main(int argc, char ** argv) {
             a[r][c] = 0.0;
         }
     }
-    
+    STOP_CLOCK(setup);
+
+    printf("nt=%d, dt=%g, frame_skip=%d, fps=%g\n", nt, dt, frame_skip, 1/(dt*frame_skip));
+
+    START_CLOCK(simulation);
     dx2inv = 1.0/(dx*dx);
     dy2inv = 1.0/(dy*dy);
 
@@ -98,10 +121,13 @@ int main(int argc, char ** argv) {
             for(r=0;r<ny;r++)
                 for(c=0;c<nx;c++)
                     output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);
-
+        STOP_CLOCK(simulation);
+        START_CLOCK(file_io);
             sprintf(filename, "./images/file%05d.png", frame);
             printf("Writing %s\n",filename);    
             write_png_file(filename,o_img,sz);
+        STOP_CLOCK(file_io);
+        START_CLOCK(simulation);
             frame+=1;
         }
 
@@ -120,11 +146,20 @@ int main(int argc, char ** argv) {
 
     for(r=0;r<ny;r++)
         for(c=0;c<nx;c++)
-            output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);  
+            output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);
+    STOP_CLOCK(simulation);
 
+    START_CLOCK(file_io);
     sprintf(filename, "./images/file%05d.png", it);
     printf("Writing %s\n",filename);    
     //Write out output image using 1D serial pointer
     write_png_file(filename,o_img,sz);
+    STOP_CLOCK(file_io); STOP_CLOCK(total);
+
+#ifdef BENCH
+    fputs("BENCHMARKING\nTOTAL setup file_io simulation\n");
+    fprintf(stderr, "%.3e %.3e %.3e %.3e\n", total_time, setup_time, file_io_time, simulation_time);
+#endif
+
     return 0;
 }
