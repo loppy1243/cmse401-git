@@ -1,8 +1,9 @@
+import sys
 import csv
 import numpy as np
 from matplotlib import pyplot as plt
 
-prefix = 'timings/compiled/serial'
+prefix = 'timings/compiled/'+sys.argv[1]
 nodes = ['dev-intel14-k20', 'dev-intel16-k80']
 
 walltimes = {}
@@ -30,4 +31,4 @@ for node in nodes:
     plt.legend()
 
 plt.tight_layout()
-plt.savefig('serial_hist.pdf')
+plt.savefig(sys.argv[2])
