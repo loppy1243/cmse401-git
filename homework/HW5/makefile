@@ -3,25 +3,20 @@
 all: serial cuda
 
 wave_2d_serial.o: wave_2d_serial.c
-	$(HPCC_MODULES)
 	gcc -c wave_2d_serial.c 
 
 wave_2d_cuda.o: wave_2d_cuda.cu
-	$(HPCC_MODULES)
 	nvcc -c wave_2d_cuda.cu 
 
 png_util.o: png_util.c
-	$(HPCC_MODULES)
 	gcc -l lpng16 -c png_util.c
 
 serial: wave_2d_serial.o png_util.o
 	mkdir -p images
-	$(HPCC_MODULES)
 	gcc -o serial -lm -l png16 wave_2d_serial.o png_util.o
 
 cuda: wave_2d_cuda.o png_util.o
 	mkdir -p images
-	$(HPCC_MODULES)
 	nvcc -o cuda -lm -l png16 wave_2d_cuda.o png_util.o
 
 images: serial
