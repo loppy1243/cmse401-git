@@ -1,27 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <time.h>
 #include "png_util.h"
+#include "bench.h"
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
 #define max(X,Y) ((X) > (Y) ? (X) : (Y))
-
-#ifdef BENCH
-#define INIT_CLOCK(label) \
-    struct timespec label##_start, label##_end; \
-    double label##_time = 0.0;
-#define START_CLOCK(label) \
-    clock_gettime(CLOCK_MONOTONIC_RAW, &label##_start)
-#define STOP_CLOCK(label) \
-    clock_gettime(CLOCK_MONOTIONIC_RAW, &label##_end) \
-    label##_time += (double) (label##_end.tv_sec - label##_start.tv_sec) \
-                    + (double) (label##_end.tv_nsec - label##_start.tv_nsec)*1e-9
-#else
-#define INIT_CLOCK(label)
-#define START_CLOCK(label)
-#define STOP_CLOCK(label)
-#endif
-
 
 int main(int argc, char ** argv) {
     INIT_CLOCK(setup); INIT_CLOCK(simulation); INIT_CLOCK(file_io); INIT_CLOCK(total);
