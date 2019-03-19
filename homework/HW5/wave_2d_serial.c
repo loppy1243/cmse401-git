@@ -9,8 +9,10 @@ int main(int argc, char ** argv) {
     int nx = 500;
     int ny = 500;
     int nt = 10000; 
-    int frame=0;
     //int nt = 1000000;
+    int frame = 0;
+    // fps = 1/(dt*frame_skip)
+    int frame_skip = 100;
     int r,c,it;
     double dx,dy,dt;
     double max,min;
@@ -26,7 +28,7 @@ int main(int argc, char ** argv) {
     double * h_z = (double *) malloc(nx*ny*sizeof(double));
     double ** z = malloc(ny * sizeof(double*));
     for (r=0; r<ny; r++)
-    	z[r] = &h_z[r*nx];
+        z[r] = &h_z[r*nx];
 
     //Velocity
     double * h_v = (double *) malloc(nx*ny*sizeof(double));
@@ -52,54 +54,55 @@ int main(int argc, char ** argv) {
     dy = (max-min)/(double)(ny-1);
     
     tmax=20.0;
-    dt= (tmax-0.0)/(double)(nt-1);
+    dt = (tmax-0.0)/(double)(nt-1);
+
+    printf("nt=%d, dt=%g, frame_skip=%d, fps=%g\n", nt, dt, frame_skip, 1/(dt*frame_skip));
 
     double x,y; 
-    for (r=0;r<ny;r++)  {
-    	for (c=0;c<nx;c++)  {
-		x = min+(double)c*dx;
-		y = min+(double)r*dy;
-        	z[r][c] = exp(-(sqrt((x-5.0)*(x-5.0)+(y-5.0)*(y-5.0))));
-        	v[r][c] = 0.0;
-	        a[r][c] = 0.0;
-    	}
+    for (r=0;r<ny;r++) {
+        for (c=0;c<nx;c++) {
+        x = min+(double)c*dx;
+        y = min+(double)r*dy;
+            z[r][c] = exp(-(sqrt((x-5.0)*(x-5.0)+(y-5.0)*(y-5.0))));
+            v[r][c] = 0.0;
+            a[r][c] = 0.0;
+        }
     }
     
-    dx2inv=1.0/(dx*dx);
-    dy2inv=1.0/(dy*dy);
+    dx2inv = 1.0/(dx*dx);
+    dy2inv = 1.0/(dy*dy);
 
     for(it=0;it<nt-1;it++) {
-	//printf("%d\n",it);
+    //printf("%d\n",it);
         for (r=1;r<ny-1;r++)  
-    	    for (c=1;c<nx-1;c++)  {
-		double ax = (z[r+1][c]+z[r-1][c]-2.0*z[r][c])*dx2inv;
-		double ay = (z[r][c+1]+z[r][c-1]-2.0*z[r][c])*dy2inv;
-		a[r][c] = (ax+ay)/2;
-	    }
+            for (c=1;c<nx-1;c++) {
+                double ax = (z[r+1][c]+z[r-1][c]-2.0*z[r][c])*dx2inv;
+                double ay = (z[r][c+1]+z[r][c-1]-2.0*z[r][c])*dy2inv;
+                a[r][c] = (ax+ay)/2;
+            }
         for (r=1;r<ny-1;r++)  
-    	    for (c=1;c<nx-1;c++)  {
-               v[r][c] = v[r][c] + dt*a[r][c];
-               z[r][c] = z[r][c] + dt*v[r][c];
+            for (c=1;c<nx-1;c++) {
+                v[r][c] = v[r][c] + dt*a[r][c];
+                z[r][c] = z[r][c] + dt*v[r][c];
             }
 
-	if (it % 100 ==0)
-	{
-    	    double mx,mn;
-    	    mx = -999999;
+        if (it % frame_skip == 0) {
+            double mx,mn;
+            mx = -999999;
             mn = 999999;
             for(r=0;r<ny;r++)
-                for(c=0;c<nx;c++){
-           	    mx = max(mx, z[r][c]);
-           	    mn = min(mn, z[r][c]);
-        	}
-    	    for(r=0;r<ny;r++)
+                for(c=0;c<nx;c++) {
+                mx = max(mx, z[r][c]);
+                mn = min(mn, z[r][c]);
+            }
+            for(r=0;r<ny;r++)
                 for(c=0;c<nx;c++)
                     output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);
 
-    	    sprintf(filename, "./images/file%05d.png", frame);
+            sprintf(filename, "./images/file%05d.png", frame);
             printf("Writing %s\n",filename);    
-    	    write_png_file(filename,o_img,sz);
-	    frame+=1;
+            write_png_file(filename,o_img,sz);
+            frame+=1;
         }
 
     }
@@ -108,17 +111,16 @@ int main(int argc, char ** argv) {
     mx = -999999;
     mn = 999999;
     for(r=0;r<ny;r++)
-        for(c=0;c<nx;c++){
-	   mx = max(mx, z[r][c]);
-	   mn = min(mn, z[r][c]);
+        for(c=0;c<nx;c++) {
+            mx = max(mx, z[r][c]);
+            mn = min(mn, z[r][c]);
         }
 
     printf("%f, %f\n", mn,mx);
 
     for(r=0;r<ny;r++)
-        for(c=0;c<nx;c++){  
-	   output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);  
-	}
+        for(c=0;c<nx;c++)
+            output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);  
 
     sprintf(filename, "./images/file%05d.png", it);
     printf("Writing %s\n",filename);    
