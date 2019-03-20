@@ -6,13 +6,16 @@
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
 #define max(X,Y) ((X) > (Y) ? (X) : (Y))
 
+#define IDX2D(a, i, stride, j) ((a)[(i)*(stride) + (j)])
+
 int main(int argc, char ** argv) {
     INIT_CLOCK(setup); INIT_CLOCK(simulation); INIT_CLOCK(file_io); INIT_CLOCK(total);
 
     START_CLOCK(total); START_CLOCK(setup);
-    int nx = 500;
-    int ny = 500;
-    int nt = 10000; 
+    const int nx = 500;
+    const int ny = 500;
+    const int mesh_size = nx*ny;
+    const int nt = 10000; 
     //int nt = 1000000;
     int frame = 0;
     // fps = 1/(dt*frame_skip)
@@ -29,28 +32,13 @@ int main(int argc, char ** argv) {
     sz.height=ny;
 
     //make mesh
-    double * h_z = (double *) malloc(nx*ny*sizeof(double));
-    double ** z = malloc(ny * sizeof(double*));
-    for (r=0; r<ny; r++)
-        z[r] = &h_z[r*nx];
-
+    double *z = (double *) malloc(mesh_size*sizeof(double));
     //Velocity
-    double * h_v = (double *) malloc(nx*ny*sizeof(double));
-    double ** v = malloc(ny * sizeof(double*));
-    for (r=0; r<ny; r++)
-        v[r] = &h_v[r*nx];
-
+    double *v = (double *) malloc(mesh_size*sizeof(double));
     //Accelleration
-    double * h_a = (double *) malloc(nx*ny*sizeof(double));
-    double ** a = malloc(ny * sizeof(double*));
-    for (r=0; r<ny; r++)
-        a[r] = &h_a[r*nx];
-
+    double *a = (double *) malloc(mesh_size*sizeof(double));
     //output image
-    char * o_img = (char *) malloc(sz.width*sz.height*sizeof(char));
-    char **output = malloc(sz.height * sizeof(char*));
-    for (int r=0; r<sz.height; r++)
-        output[r] = &o_img[r*sz.width];
+    char *output = (char *) malloc(mesh_size*sizeof(char));
 
     max=10.0;
     min=0.0;
@@ -65,9 +53,9 @@ int main(int argc, char ** argv) {
         for (c=0;c<nx;c++) {
         x = min+(double)c*dx;
         y = min+(double)r*dy;
-            z[r][c] = exp(-(sqrt((x-5.0)*(x-5.0)+(y-5.0)*(y-5.0))));
-            v[r][c] = 0.0;
-            a[r][c] = 0.0;
+            IDX2D(z, r, nx, c) = exp(-(sqrt((x-5.0)*(x-5.0)+(y-5.0)*(y-5.0))));
+            IDX2D(v, r, nx, c) = 0.0;
+            IDX2D(a, r, nx, c) = 0.0;
         }
     }
     STOP_CLOCK(setup);
@@ -82,61 +70,65 @@ int main(int argc, char ** argv) {
     //printf("%d\n",it);
         for (r=1;r<ny-1;r++)  
             for (c=1;c<nx-1;c++) {
-                double ax = (z[r+1][c]+z[r-1][c]-2.0*z[r][c])*dx2inv;
-                double ay = (z[r][c+1]+z[r][c-1]-2.0*z[r][c])*dy2inv;
-                a[r][c] = (ax+ay)/2;
+                const double z_val =    IDX2D(z, r,   nx, c);
+                const double z_x_high = IDX2D(z, r+1, nx, c);
+                const double z_x_low =  IDX2D(z, r-1, nx, c);
+                const double z_y_high = IDX2D(z, r,   nx, c+1);
+                const double z_y_low =  IDX2D(z, r,   nx, c-1);
+                const double ax = (z_x_high+z_x_high-2.0*z_val)*dx2inv;
+                const double ay = (z_y_high+z_y_low-2.0*z_val)*dy2inv;
+                IDX2D(a, r, nx, c) = (ax+ay)/2;
             }
-        for (r=1;r<ny-1;r++)  
+        for (r=1; r<ny-1; r++)  
             for (c=1;c<nx-1;c++) {
-                v[r][c] = v[r][c] + dt*a[r][c];
-                z[r][c] = z[r][c] + dt*v[r][c];
+                IDX2D(v, r, nx, c) = IDX2D(v, r, nx, c) + dt*IDX2D(a, r, nx, c);
+                IDX2D(z, r, nx, c) = IDX2D(z, r, nx, c) + dt*IDX2D(v, r, nx, c);
             }
 
         if (it % frame_skip == 0) {
             double mx,mn;
             mx = -999999;
             mn = 999999;
-            for(r=0;r<ny;r++)
-                for(c=0;c<nx;c++) {
-                mx = max(mx, z[r][c]);
-                mn = min(mn, z[r][c]);
+            for (size_t k = 0; k < mesh_size; ++k) {
+                mx = max(mx, z[k]);
+                mn = min(mn, z[k]);
             }
-            for(r=0;r<ny;r++)
-                for(c=0;c<nx;c++)
-                    output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);
-        STOP_CLOCK(simulation);
-        START_CLOCK(file_io);
+            for (size_t k=0; k < mesh_size; ++k)
+                output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+
+            STOP_CLOCK(simulation);
+            START_CLOCK(file_io);
+
             sprintf(filename, "./images/file%05d.png", frame);
             printf("Writing %s\n",filename);    
-            write_png_file(filename,o_img,sz);
-        STOP_CLOCK(file_io);
-        START_CLOCK(simulation);
+            write_png_file(filename,output,sz);
+
+            STOP_CLOCK(file_io);
+            START_CLOCK(simulation);
+
             frame+=1;
         }
-
     }
     
     double mx,mn;
     mx = -999999;
     mn = 999999;
-    for(r=0;r<ny;r++)
-        for(c=0;c<nx;c++) {
-            mx = max(mx, z[r][c]);
-            mn = min(mn, z[r][c]);
-        }
+    for (size_t k = 0; k < mesh_size; ++k) {
+        mx = max(mx, z[k]);
+        mn = min(mn, z[k]);
+    }
 
-    printf("%f, %f\n", mn,mx);
+    printf("%f, %f\n", mn, mx);
 
-    for(r=0;r<ny;r++)
-        for(c=0;c<nx;c++)
-            output[r][c] = (char) round((z[r][c]-mn)/(mx-mn)*255);
+    for (size_t k = 0; k < mesh_size; ++k)
+        output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
     STOP_CLOCK(simulation);
 
     START_CLOCK(file_io);
     sprintf(filename, "./images/file%05d.png", it);
     printf("Writing %s\n",filename);    
     //Write out output image using 1D serial pointer
-    write_png_file(filename,o_img,sz);
+    write_png_file(filename,output,sz);
     STOP_CLOCK(file_io); STOP_CLOCK(total);
 
 #ifdef BENCH
