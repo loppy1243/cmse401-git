@@ -1,7 +1,6 @@
 import argparse
 import os
 import csv
-import numpy as np
 from matplotlib import pyplot as plt
 
 parser = argparse.ArgumentParser()
@@ -41,29 +40,35 @@ for node in nodes:
                     if field not in args.excluded_fields:
                         times[node][tset][field].append(float(val))
 
-plot_dims = (len(fields), len(args.timing_sets))
+#plot_dims = (len(fields), len(args.timing_sets))
+plot_dims = (len(fields), 1)
 splot_x, splot_y = 1, 1
 def splot(x, y):
     return x + (y-1)*plot_dims[1]
 
-plt.figure(figsize=(5*plot_dims[1], 2*plot_dims[0]))
+plt.figure(figsize=(7*plot_dims[1], 2*plot_dims[0]))
 
+labels = [node+' '+tset for node, tset in zip(nodes, args.timing_sets)]
+data = [None for _ in nodes]
 for tset in args.timing_sets:
     first = True
     ax = None
     for field in fields:
         if first:
-            first = False
             ax = plt.subplot(*plot_dims, splot(splot_x, splot_y))
         else:
             plt.subplot(*plot_dims, splot(splot_x, splot_y), sharex=ax)
 
-        for node in nodes:
-            plt.hist(times[node][tset][field], label=node)
-        plt.title(tset+' '+field)
-        plt.legend()
+        for i in range(len(nodes)):
+            data[i] = times[nodes[i]][tset][field]
+        plt.hist(data, label=labels, histtype='bar')
+        plt.title(field)
+        if first:
+            plt.legend()
         splot_y = splot_y % (plot_dims[0]) + 1
+        first = False
     splot_x = splot_x % (plot_dims[1]) + 1
+plt.xlabel('Time (s)')
 
 plt.tight_layout()
 plt.savefig(args.outfile)
