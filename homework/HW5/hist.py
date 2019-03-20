@@ -46,6 +46,8 @@ splot_x, splot_y = 1, 1
 def splot(x, y):
     return x + (y-1)*plot_dims[1]
 
+plt.figure(figsize=(5*plot_dims[1], 2*plot_dims[0]))
+
 for tset in args.timing_sets:
     first = True
     ax = None
