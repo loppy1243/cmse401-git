@@ -15,106 +15,96 @@
         fprintf(stderr, "%s:%d: CUDA ERROR: %d returned \"%s\"\n", \
                 __FILE__, __LINE__, cuda_error__, cudaGetErrorString(cuda_error__)); \
 }
-#define DEFINE_CUDA_MEM_STRUCT(ty) \
-    struct ty##_cuda_mem { \
-        ty *host_ptr; \
-        ty *device_ptr; \
-        size_t size;
-    }; typedef struct ty##_cuda_mem ty##_cuda_mem;
 
+template<T> class CudaMem {
+    T *_host_ptr;
+    T *_device_ptr;
+    size_t size;
+public:
+    CudaMem(size_t size) {
+        this->_host_ptr = new T[size];
+        CUDA_CHKERR(cudaMalloc((void **) &this->_device_ptr, size));
+        this->size = size;
+    }
+    ~CudaMem() {
+        delete[] this->_host_ptr;
+        CUDA_CHKERR(cudaFree(this->_device_ptr));
+    }
 
-DEFINE_CUDA_MEM_STRUCT(void);
-DEFINE_CUDA_MEM_STRUCT(double);
-DEFINE_CUDA_MEM_STRUCT(char);
+    T *host_ptr() { return _host_ptr; }
+    T *device_ptr() { return _device_ptr; }
 
-void_cuda_mem cuda_mem_malloc(size_t size) {
-    void_cuda_mem ret;
+    void to_device() {
+        CUDA_CHKERR(cudaMemcpy(mem.device_ptr, mem.host_ptr, mem.size,
+                               cudaMemcpyHostToDevice));
+    }
 
-    ret.host_ptr = malloc(size);
-    CHKERR(ret.host_ptr == NULL, "Failed to allocate host memory in cuda_mem_malloc()");
-    CUDA_CHKERR(cudaMalloc(&ret.device_ptr, size));
-    ret.size = size;
-
-    return ret;
+    void to_host() {
+        CUDA_CHKERR(cudaMemcpy(mem.host_ptr, mem.device_ptr, mem.size,
+                               cudaMemcpyDeviceToHost));
+    }
 }
 
-void cuda_mem_free(void_cuda_mem mem) {
-    free(ret.host_ptr);
-    CUDA_CHKERR(cudaFree(ret.device_ptr));
+int get_warpSize() {
+    static int _warpsize = 0;
+
+    if (_warpsize == 0) {
+        cudaDeviceProp props;
+        CUDA_CHKERR(cudaGetDeviceProperties(&props, 0);
+        _warpsize = props.warpSize;
+    }
+
+    return _warpsize;
 }
 
-void cuda_mem_to_device(void_cuda_mem mem) {
-    CUDA_CHKERR(cudaMemcpy(mem.device_ptr, mem.host_ptr, mem.size, cudaMemcpyHostToDevice));
-}
+// The block size MUST be warpSize*warpSize
+__global__ void sim_kernel(double *z, double *v, int nx, int ny, double dx2inv, double dy2inv, double dt) {
+    // Add one so we can have bank-parallelism along rows or along columns. Should benchmark
+    // this.
+    __static__ double z_tile[warpSize][warpSize/*+1*/];
+    __static__ double v_tile[warpSize][warpSize/*+1*/];
+    __static__ double ax_tile[warpSize][warpSize/*+1*/];
 
-void cuda_mem_to_host(void_cuda_mem mem) {
-    CUDA_CHKERR(cudaMemcpy(mem.host_ptr, mem.device_ptr, mem.size, cudaMemcpyDeviceToHost));
-}
+    const int mesh_x = blockIdx.y*warpSize + threadIdx.y + 1;
+    const int mesh_y = blockIdx.x*warpSize + threadIdx.x + 1;
 
-#define BLKSIZE 32
-#define TILESIZE 8
-__global__ void sim_kernel(double *z, double *v, double *a, int nx, int ny, double dx2inv, double dy2inv, double dt) {
-    // TEST adding 1 to last dimension
-    __static__ double z_tile[BLKSIZE][BLKSIZE];
-    __static__ double v_tile[BLKSIZE][BLKSIZE];
-    __static__ double a_tile[BLKSIZE][BLKSIZE];
-    __static__ char output_tile[BLKSIZE][BLKSIZE];
+    if (mesh_x >= nx-1 || mesh_y >= ny-1) return;
 
-    int block_thrd_y = TILESIZE*threadIdx.y;
-    int mesh_x = blockIdx.y*BLKSIZE + threadIdx.x;
-    int mesh_y = blockIdx.x*BLKSIZE + block_thrd_y;
+    const double z_val_y = z_tile[threadIdx.x][threadIdx.y] = IDX2D(z, mesh_x, nx, mesh_y);
+                           v_tile[threadIdx.y][threadIdx.x] = IDX2D(v, mesh_x, nx, mesh_y);
 
-    for (int k = 0; k < TILESIZE; ++k) {
-        z_tile[threadIdx.x][block_thrd_y+k] = IDX2D(z, mesh_x, nx, mesh_y+k);
-        v_tile[threadIdx.x][block_thrd_y+k] = IDX2D(v, mesh_x, nx, mesh_y+k);
-        a_tile[threadIdx.x][block_thrd_y+k] = IDX2D(a, mesh_x, nx, mesh_y+k);
+    __syncthreads();
+
+    const double z_val_x = z_tile[threadIdx.y][threadIdx.x];
+
+    double ay;
+    if (0 < threadIdx.x && threadIdx.x < warpSize-1)
+        const int shfl_mask = 0x7 << threadIdx.x-1;
+        ax_tile[threadIdx.x][threadIdx.y] =
+            dx2inv*(__shfl_down_sync(shfl_mask, z_val_x, 1)
+                    + __shfl_up_sync(shfl_mask, z_val_x, 1)
+                    - 2.0*z_val_x);
+        ay = dy2inv*(__shfl_down_sync(shfl_mask, z_val_y, 1)
+                     + __shfl_up_sync(shfl_mask, z_val_y, 1)
+                     - 2.0*z_val_y);
+    else {
+        const int n = (threadIdx.x+1)/warpSize - (warpSize - threadIdx.x)/warpSize;
+        ax_tile[threadIdx.x][threadIdx.y] =
+            dx2inv*(z_tile[threadIdx.y][threadIdx.x+n] + IDX2D(z, mesh_x-n, nx, mesh_y)
+                    - 2.0*z_val_x);
+        ay = dy2inv*(IDX2D(z, mesh_x, nx, mesh_y+n) + z_tile[threadIdx.x][threadIdx.y-n]
+                     - 2.0*z_val_y);
     }
 
     __syncthreads();
 
-//    // Only for threads in a warp :(
-//    __shfl_down_sync()
+    double a_val = (ax_tile[threadIdx.y][threadIdx.x] + ay)/2.0;
+    double v_val = v_tile[threadIdx.y][threadIdx.x] += dt*a_val;
+    IDX2D(v, mesh_x, bx, mesh_y) = v_val;
+    IDX2D(z, mesh_x, bx, mesh_y) = z_val_y + dt*v_val;
+}
 
-    const int n = (gridDim.y - blockIdx.y)/gridDim.y;
-    const int m = (blockIdx.y + 1)/gridDim.y;
-#define STERM(a, b, c) ((a)[block_thrd_y+(b)][threadIdx.x+(c)])
-#define GTERM(a, b, c) IDX2D((a), threadIdx.x+(b), nx, block_thrd_y+(c))
-    if (0 < mesh_x && mesh_x < nx-1 && 0 < mesh_y && mesh_y < ny-1) {
-        if (0 < threadIdx.x && threadIdx.x < BLKSIZE-1) {
-            for (int k = n; k < TILESIZE-m; ++k) {
-                const double ax =
-                    dx2inv*(STERM(z_tile, k+1, 0) + STERM(z_tile, k-1, 0)
-                            - 2.0*STERM(z_tile, k, 0));
-                const double ay =
-                    dy2inv*(STERM(z_tile, k, 1) + STERM(z_tile, k, -1)
-                            - 2.0*STERM(z_tile, k, 0));
-                STERM(a_tile, k, 0) = (ax + ay)/2.0;
-            }
-        }
-        else {
-            for (int k = n; k < TILESIZE-m; ++k) {
-                const double ax =
-                    dx2inv*(STERM(z_tile, k+1, 0) + STERM(z_tile, k-1, 0)
-                            - 2.0*STERM(z_tile, k, 0));
-                const double ay =
-                    dy2inv*(GTERM(z, k, 1) + GTERM(z, k, -1) - 2.0*STERM(z, k, 0));
-
-                STERM(a_tile, 0, 0) = (ax + ay)/2.0;
-            }
-        }
-
-#define TERM(a, b, c) ((a)[threadIdx.x+(b)][block_thrd_y+k+(c)])
-        for (int k = 0; k < TILESIZE; ++k) {
-            STERM(v_tile, k, 0) += dt*STERM(a_tile, k, 0);
-            STERM(z_tile, k, 0) += dt*STERM(v_tile, k, 0);
-        }
-
-        for (int k = 0; k < TILESIZE; ++k) {
-            IDX2D(z, mesh_x, nx, mesh_y+k) = z_tile[threadIdx.x][block_thrd_y+k];
-            IDX2D(v, mesh_x, nx, mesh_y+k) = v_tile[threadIdx.x][block_thrd_y+k];
-            IDX2D(a, mesh_x, nx, mesh_y+k) = a_tile[threadIdx.x][block_thrd_y+k];
-        }
-    }
+__global__ void normalize(double *z, double *output, int nx) {
 }
 
 int main(int argc, char ** argv) {
