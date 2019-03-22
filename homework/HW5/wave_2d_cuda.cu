@@ -17,11 +17,21 @@
 }
 
 template<T> class CudaMem {
+protected:
     T *_host_ptr;
     T *_device_ptr;
     size_t size;
+
 public:
     CudaMem(size_t size) {
+        this->_host_ptr = new T[size];
+        CUDA_CHKERR(cudaMalloc((void **) &this->_device_ptr, size));
+        this->size = size;
+    }
+    CudaMem(size_t size, size_t align) {
+        const size_t x = size % align;
+        size = x == 0 ? size : size - x + align;
+
         this->_host_ptr = new T[size];
         CUDA_CHKERR(cudaMalloc((void **) &this->_device_ptr, size));
         this->size = size;
@@ -34,35 +44,57 @@ public:
     T *host_ptr() { return _host_ptr; }
     T *device_ptr() { return _device_ptr; }
 
-    void to_device() {
-        CUDA_CHKERR(cudaMemcpy(mem.device_ptr, mem.host_ptr, mem.size,
+    void to_device(size_t off, size_t n) {
+        CUDA_CHKERR(cudaMemcpy(mem.device_ptr+off, mem.host_ptr+off, n*sizeof(T),
                                cudaMemcpyHostToDevice));
     }
+    void to_device() { this->to_device(0, this->size); }
 
-    void to_host() {
-        CUDA_CHKERR(cudaMemcpy(mem.host_ptr, mem.device_ptr, mem.size,
+    void to_host(size_t off, size_t n) {
+        CUDA_CHKERR(cudaMemcpy(mem.host_ptr+off, mem.device_ptr+off, n*sizeof(T),
                                cudaMemcpyDeviceToHost));
     }
+    void to_host() { this->to_host(0, this->size); }
+
+    void device_copy(CudaMem<T> other, size_t n) {
+        CUDA_CHKERR(cudaMemcpy(this->device_ptr, other.device_ptr, n*sizeof(T),
+                               cudaMemcpyDeviceToDevice));
+    }
+
+    void device_copy(CudaMem<T> other) {
+        const size_t n = this->size > other.size ? other.size : this->size;
+        this->device_copy(other, n);
+    }
+}
+
+cudaDeviceProp get_deviceProps() {
+    static cudaDeviceProp props;
+    static bool gotten = false;
+
+    if (!gotten) CUDA_CHKERR(cudaGetDeviceProperties(&props, 0));
+
+    return props;
 }
 
 int get_warpSize() {
-    static int _warpsize = 0;
-
-    if (_warpsize == 0) {
-        cudaDeviceProp props;
-        CUDA_CHKERR(cudaGetDeviceProperties(&props, 0);
-        _warpsize = props.warpSize;
-    }
-
-    return _warpsize;
+    return get_deviceProps().warpSize;
 }
 
-// The block size MUST be warpSize*warpSize
-__global__ void sim_kernel(double *z, double *v, int nx, int ny, double dx2inv, double dy2inv, double dt) {
+int get_maxGridSize() {
+    int *sizes = get_deviceProps().maxGridSize;
+
+    return sizes[0]*size[1]*sizes[2];
+}
+
+__device__ inline double warp_accel(double z, double d_2inv) {
+    return d_2inv*(__shfl_down_sync(shfl_mask, z, 1) + __shfl_up_sync(shfl_mask, z, 1) - 2.0*z);
+}
+
+// The block size MUST be warpSize by warpSize.
+__global__ void sim_kernel(double *z, double *v, size_t nx, size_t ny, double dx2inv, double dy2inv, double dt) {
     // Add one so we can have bank-parallelism along rows or along columns. Should benchmark
     // this.
     __static__ double z_tile[warpSize][warpSize/*+1*/];
-    __static__ double v_tile[warpSize][warpSize/*+1*/];
     __static__ double ax_tile[warpSize][warpSize/*+1*/];
 
     const int mesh_x = blockIdx.y*warpSize + threadIdx.y + 1;
@@ -70,41 +102,131 @@ __global__ void sim_kernel(double *z, double *v, int nx, int ny, double dx2inv, 
 
     if (mesh_x >= nx-1 || mesh_y >= ny-1) return;
 
-    const double z_val_y = z_tile[threadIdx.x][threadIdx.y] = IDX2D(z, mesh_x, nx, mesh_y);
-                           v_tile[threadIdx.y][threadIdx.x] = IDX2D(v, mesh_x, nx, mesh_y);
+    const double z_val_y = z_tile[threadIdx.y][threadIdx.x] = IDX2D(z, mesh_x, ny, mesh_y);
 
     __syncthreads();
 
-    const double z_val_x = z_tile[threadIdx.y][threadIdx.x];
+    const double z_val_x = z_tile[threadIdx.x][threadIdx.y];
 
     double ay;
     if (0 < threadIdx.x && threadIdx.x < warpSize-1)
         const int shfl_mask = 0x7 << threadIdx.x-1;
-        ax_tile[threadIdx.x][threadIdx.y] =
-            dx2inv*(__shfl_down_sync(shfl_mask, z_val_x, 1)
-                    + __shfl_up_sync(shfl_mask, z_val_x, 1)
-                    - 2.0*z_val_x);
-        ay = dy2inv*(__shfl_down_sync(shfl_mask, z_val_y, 1)
-                     + __shfl_up_sync(shfl_mask, z_val_y, 1)
-                     - 2.0*z_val_y);
+        ax_tile[threadIdx.y][threadIdx.x] = warp_accel(z_val_x, dx2inv);
+        ay = warp_accel(z_val_y, dy2inv);
     else {
         const int n = (threadIdx.x+1)/warpSize - (warpSize - threadIdx.x)/warpSize;
-        ax_tile[threadIdx.x][threadIdx.y] =
-            dx2inv*(z_tile[threadIdx.y][threadIdx.x+n] + IDX2D(z, mesh_x-n, nx, mesh_y)
+        ax_tile[threadIdx.y][threadIdx.x] =
+            dx2inv*(z_tile[threadIdx.x+n][threadIdx.y] + IDX2D(z, mesh_x-n, ny, mesh_y)
                     - 2.0*z_val_x);
-        ay = dy2inv*(IDX2D(z, mesh_x, nx, mesh_y+n) + z_tile[threadIdx.x][threadIdx.y-n]
+        ay = dy2inv*(IDX2D(z, mesh_x, ny, mesh_y-n) + z_tile[threadIdx.y][threadIdx.x+n]
                      - 2.0*z_val_y);
     }
 
     __syncthreads();
 
-    double a_val = (ax_tile[threadIdx.y][threadIdx.x] + ay)/2.0;
-    double v_val = v_tile[threadIdx.y][threadIdx.x] += dt*a_val;
-    IDX2D(v, mesh_x, bx, mesh_y) = v_val;
+    const double a_val = (ax_tile[threadIdx.x][threadIdx.y] + ay)/2.0;
+    const double v_val = IDX2D(v, mesh_x, ny, mesh_y) += dt*a_val;
     IDX2D(z, mesh_x, bx, mesh_y) = z_val_y + dt*v_val;
 }
 
-__global__ void normalize(double *z, double *output, int nx) {
+void cuda_sim(double *z, double *v, size_t nx, size_t ny, double dx2inv, double dy2inv, double dt) {
+    const int warpsize = get_warpSize();
+    const dim3 blocksize(warpsize, warpsize);
+    const dim3 gridsize((ny-1)/blocksize+1, (nx-1)/blocksize+1);
+
+    sim_kernel<<<gridsize, blocksize>>>(z, b, nx, ny, dx2inv, dy2inv, dt);
+}
+
+// Return value is defined only for the first thread of each warp.
+// `blockDim.x` must be a multiple of `warpSize`.
+__device__ double warp_min_max(double *m_ptr, double *M_ptr) {
+    double m = *m_ptr, M = *M_ptr;
+    for (int offset = warpSize/2; offset > 0; offset /= 2) {
+        const int mask = (1 << (2*offset)) - 1;
+        const double other_m = __shfl_down_sync(mask, m, offset);
+        const double other_M = __shfl_down_sync(mask, M, offset);
+        if (other_m < m) m = other_m;
+        if (other_M > M) M = other_M;
+    }
+
+    *m_ptr = m; *M_ptr = M;
+}
+
+// `blockDim.x` must be a multiple of `warpSize` less than `warpSize**2`.
+__device__ double block_min_max(double *m_ptr, double *M_ptr) {
+    __shared__ double warp_share_m[warpSize];
+    __shared__ double warp_share_M[warpSize];
+
+    const int warp_lane = threadIdx.x % warpsize;
+    const int warp_idx = threadIdx.x/warpSize;
+
+    if (warp_idx == 0) {
+        warp_share_m[warp_lane] = *m_ptr;
+        warp_share_M[warp_lane] = *M_ptr;
+    }
+
+    warp_min_max(m_ptr, M_ptr);
+    if (warp_lane == 0) {
+        warp_share_m[warp_idx] = *m_ptr;
+        warp_share_M[warp_idx] = *M_ptr;
+    }
+
+    *m_ptr = warp_share_m[warp_lane];
+    *M_ptr = warp_share_M[warp_lane];
+    if (warp_idx == 0) val = warp_min_max(m_ptr, M_ptr);
+}
+
+// Reduce `in_m`/`in_M` to `gridDim.x` candidates in `out_m`/`out_M` for its minimim/maximum.
+// Assumes
+//     1D grid and blocks.
+//     `gridDim.x = k*warpSize` for `1 <= k <= warpSize`.
+//     `in_m` and `in_M` must have size `>= gridDim.x*blockDim.x`.
+//     `out_m` and `out_M` must have size `>= gridDim.x`.
+__global__ block_min_max_kernel(double *in_m, double *in_M, int size, double *out_m, double *out_M) {
+    const double grid_size = blockDim.x*gridDim.x;
+
+    double m = in_m[i]; double M = in_M[i];
+    for (int i = idx; i < size; i += grid_size) {
+        if (in_m[i] < m) m = other;
+        if (in_M[i] > M) M = other;
+    }
+
+    block_min_max(&m, &M);
+
+    if (threadIdx.x == 0) {
+        out_m[blockIdx.x] = m; out_M[blockIdx.x] = M;
+    }
+}
+
+#define CUDA_MAX_MAX_BLOCKS 1024
+// Compute the min and max of `z` in `scratch_m[0]` and `scratch_M[0]`, respectively.
+// `scratch_m` and `scratch_M` must have size at least gridsize.
+void cuda_min_max(double *z, size_t size, double *scratch_m, double *scratch_M) {
+    const int warpsize = get_warpSize();
+
+    const int blocksize = min(size - size%warpsize, get_maxThreadsPerBlock());
+    const int gridsize = min(size/blocksize, CUDA_MAX_MAX_BLOCKS);
+    const int gridsize2 = gridsize - gridsize%warpsize;
+
+    block_max_kernel<<<gridsize, blocksize>>>(z, z, size, scratch_m, scratch_M);
+    block_max_kernel<<<1, gridsize2>>>(scratch_m, scratch_M, gridsize, scratch_m, scratch_M);
+}
+
+__global__ void grayscale_kernel(double *z, char *output, size_t size, double z_min, double z_max) {
+    const double grid_size = blockDim.x*gridDim.x;
+    const int idx = threadIdx.x + blockDim.x*blockIdx.x;
+
+    for (int i = idx; i < size; i += grid_size)
+        output[i] = (char) round((z[i]-z_min)/(z_max-z_min)*255);
+}
+
+#define CUDA_GRAYSCALE_MAX_BLOCKS 1024
+// `z` and `output` can alias.
+void cuda_grayscale(double *z, double *output, size_t size, double z_min. double z_max) {
+    const int blocksize = min(size, get_maxThreadsPerBlock());
+    const int gridsize = min(size/blocksize, CUDA_GRAYSCALE_MAX_BLOCKS);
+
+    grayscale_kernel<<<gridsize, blocksize>>>(z, output, size, z_min, z_max);
 }
 
 int main(int argc, char ** argv) {
@@ -130,17 +252,8 @@ int main(int argc, char ** argv) {
     sz.width=nx;
     sz.height=ny;
 
-    const size_t double_mesh_size = mesh_size*sizeof(double);
-    const size_t char_mesh_size = mesh_size*sizeof(char);
-
-    //make mesh
-    double_cuda_mem z = cuda_mem_malloc(double_mesh_size);
-    //Velocity
-    double_cuda_mem v = cuda_mem_malloc(double_mesh_size);
-    //Accelleration
-    double_cuda_mem a = cuda_mem_malloc(double_mesh_size);
-    //output image
-    char_cuda_mem output = cuda_mem_malloc(char_mesh_size);
+    CudaMem<double> z(nx*ny), v(nx*ny), a(nx*ny);
+    CudaMem<char> output(nx*ny);
 
     max=10.0;
     min=0.0;
@@ -161,10 +274,7 @@ int main(int argc, char ** argv) {
         }
     }
 
-    cuda_mem_to_device(z);
-    cuda_mem_to_device(a);
-    cuda_mem_to_device(v);
-    cuda_mem_to_device(output);
+    z.to_device(); a.to_device(); v.to_device();
 
     STOP_CLOCK(setup);
 
@@ -175,23 +285,7 @@ int main(int argc, char ** argv) {
     dy2inv = 1.0/(dy*dy);
 
     for(it=0;it<nt-1;it++) {
-    //printf("%d\n",it);
-        for (r=1;r<ny-1;r++)  
-            for (c=1;c<nx-1;c++) {
-                const double z_val =    IDX2D(z, r,   nx, c);
-                const double z_x_high = IDX2D(z, r+1, nx, c);
-                const double z_x_low =  IDX2D(z, r-1, nx, c);
-                const double z_y_high = IDX2D(z, r,   nx, c+1);
-                const double z_y_low =  IDX2D(z, r,   nx, c-1);
-                const double ax = (z_x_high+z_x_high-2.0*z_val)*dx2inv;
-                const double ay = (z_y_high+z_y_low-2.0*z_val)*dy2inv;
-                IDX2D(a, r, nx, c) = (ax+ay)/2;
-            }
-        for (r=1; r<ny-1; r++)  
-            for (c=1;c<nx-1;c++) {
-                IDX2D(v, r, nx, c) = IDX2D(v, r, nx, c) + dt*IDX2D(a, r, nx, c);
-                IDX2D(z, r, nx, c) = IDX2D(z, r, nx, c) + dt*IDX2D(v, r, nx, c);
-            }
+        cuda_sim(z.device_ptr(), v.device_ptr(), a.device_ptr(), nx, ny, dx2inv, dy2inv, dt);
 
         if (it % frame_skip == 0) {
             double mx,mn;
@@ -201,8 +295,17 @@ int main(int argc, char ** argv) {
                 mx = max(mx, z[k]);
                 mn = min(mn, z[k]);
             }
+
             for (size_t k=0; k < mesh_size; ++k)
                 output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+
+            /*
+             * cuda_min_max(z.device_ptr(), z.size, min_scratch, max_scratch);
+             * min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
+             * const double mn = min_scratch.host_ptr()[0];
+             * const double mx = max_scratch.host_ptr()[0];
+             * cuda_grayscale(z.device_ptr(), output.device_ptr(), nx*ny, mn, mx);
+             */
 
             STOP_CLOCK(simulation);
             START_CLOCK(file_io);
@@ -230,6 +333,15 @@ int main(int argc, char ** argv) {
 
     for (size_t k = 0; k < mesh_size; ++k)
         output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+
+    /*
+     * cuda_min_max(z.device_ptr(), z.size, min_scratch, max_scratch);
+     * min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
+     * const double mn = min_scratch.host_ptr()[0];
+     * const double mx = max_scratch.host_ptr()[0];
+     * cuda_grayscale(z.device_ptr(), output.device_ptr(), nx*ny, mn, mx);
+     */
+
     STOP_CLOCK(simulation);
 
     START_CLOCK(file_io);
