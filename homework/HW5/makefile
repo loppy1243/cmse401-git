@@ -1,4 +1,4 @@
-CFLAGS := $(CFLAGS) -O3
+CFLAGS := $(CFLAGS) -std=c++11 -O3
 
 .PHONY: all bench bench_serial bench_cuda images video gif test clean
 
@@ -14,21 +14,26 @@ bench_cuda: CFLAGS := $(CFLAGS) -DBENCH
 bench_cuda: cuda
 
 wave_2d_serial.o: wave_2d_serial.c
-	gcc $(CFLAGS) -c wave_2d_serial.c 
+	$(CC) $(CFLAGS) -c wave_2d_serial.c 
 
 wave_2d_cuda.o: wave_2d_cuda.cu
-	nvcc $(CFLAGS) -c wave_2d_cuda.cu 
+	$(CC) $(CFLAGS) -c wave_2d_cuda.cu 
+
+cuda_props.o: cuda_props.cu
+	$(CC) $(CFLAGS) -c cuda_props.cu
 
 png_util.o: png_util.c
-	gcc $(CFLAGS) -l lpng16 -c png_util.c
+	$(CC) $(CFLAGS) -l lpng16 -c png_util.c
 
+serial: CC := gcc
 serial: wave_2d_serial.o png_util.o
 	mkdir -p images
-	gcc $(CFLAGS) -o serial -lm -l png16 wave_2d_serial.o png_util.o
+	$(CC) $(CFLAGS) -o serial -lm -l png16 wave_2d_serial.o png_util.o
 
-cuda: wave_2d_cuda.o png_util.o
+cuda: CC := nvcc
+cuda: wave_2d_cuda.o png_util.o cuda_props.o
 	mkdir -p images
-	nvcc $(CFLAGS) -o cuda -lm -l png16 wave_2d_cuda.o png_util.o
+	$(CC) $(CFLAGS) -o cuda -lm -l png16 wave_2d_cuda.o png_util.o cuda_props.o
 
 images: serial
 	./serial
