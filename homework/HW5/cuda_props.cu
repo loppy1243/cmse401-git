@@ -1,5 +1,5 @@
 #include "cuda_props.h"
-#include "cuda_util.h"
+#include "debug.h"
 
 cudaDeviceProp get_deviceProps() {
     static cudaDeviceProp props;
@@ -17,4 +17,12 @@ int get_warpSize() {
 
 int get_maxThreadsPerBlock() {
     return get_deviceProps().maxThreadsPerBlock;
+}
+
+int get_maxThreadsDim(int i) {
+    return get_deviceProps().maxThreadsDim[i];
+}
+
+int get_sharedMemPerBlock() {
+    return get_deviceProps().sharedMemPerBlock;
 }
