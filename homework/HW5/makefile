@@ -23,7 +23,7 @@ all: serial cuda
 %.o : %.cu
 	$(CC) $(CFLAGS) -c $<
 
-serial: CC := gcc
+serial: CC := nvcc
 serial: wave_2d_serial.o png_util.o
 	mkdir -p images
 	$(CC) $(CFLAGS) -o serial -lm -lpng16 $^

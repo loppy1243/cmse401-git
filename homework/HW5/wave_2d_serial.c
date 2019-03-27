@@ -38,7 +38,7 @@ int main(int argc, char ** argv) {
     //Accelleration
     double *a = (double *) malloc(mesh_size*sizeof(double));
     //output image
-    char *output = (char *) malloc(mesh_size*sizeof(char));
+    unsigned char *output = (unsigned char *) malloc(mesh_size*sizeof(unsigned char));
 
     max=10.0;
     min=0.0;
@@ -71,11 +71,11 @@ int main(int argc, char ** argv) {
         for (r=1;r<ny-1;r++)  
             for (c=1;c<nx-1;c++) {
                 const double z_val =    IDX2D(z, r,   nx, c);
-                const double z_x_high = IDX2D(z, r+1, nx, c);
-                const double z_x_low =  IDX2D(z, r-1, nx, c);
-                const double z_y_high = IDX2D(z, r,   nx, c+1);
-                const double z_y_low =  IDX2D(z, r,   nx, c-1);
-                const double ax = (z_x_high+z_x_high-2.0*z_val)*dx2inv;
+                const double z_x_high = IDX2D(z, r,   nx, c+1);
+                const double z_x_low =  IDX2D(z, r,   nx, c-1);
+                const double z_y_high = IDX2D(z, r+1, nx, c);
+                const double z_y_low =  IDX2D(z, r-1, nx, c);
+                const double ax = (z_x_high+z_x_low-2.0*z_val)*dx2inv;
                 const double ay = (z_y_high+z_y_low-2.0*z_val)*dy2inv;
                 IDX2D(a, r, nx, c) = (ax+ay)/2;
             }
@@ -94,7 +94,7 @@ int main(int argc, char ** argv) {
                 mn = min(mn, z[k]);
             }
             for (size_t k=0; k < mesh_size; ++k)
-                output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+                output[k] = (unsigned char) round((z[k]-mn)/(mx-mn)*255);
 
             STOP_CLOCK(simulation);
             START_CLOCK(file_io);
@@ -121,7 +121,7 @@ int main(int argc, char ** argv) {
     printf("%f, %f\n", mn, mx);
 
     for (size_t k = 0; k < mesh_size; ++k)
-        output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+        output[k] = (unsigned char) round((z[k]-mn)/(mx-mn)*255);
     STOP_CLOCK(simulation);
 
     START_CLOCK(file_io);
