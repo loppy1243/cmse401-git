@@ -42,11 +42,11 @@ int main(int argc, char ** argv) {
 
     CudaMem<double> z(mesh_size);
     CudaMem<double> v(mesh_size);
-//    CudaMem<unsigned char> output(mesh_size);
-    unsigned char *output = new unsigned char[mesh_size];
+    CudaMem<unsigned char> output(mesh_size);
+//    unsigned char *output = new unsigned char[mesh_size];
 
-//    CudaMem<double> min_scratch(CUDA_MAX_MAX_BLOCKS); CUDA_CHKERR(min_scratch.init_device());
-//    CudaMem<double> max_scratch(CUDA_MAX_MAX_BLOCKS); CUDA_CHKERR(max_scratch.init_device());
+    CudaMem<double> min_scratch(CUDA_MAX_MAX_BLOCKS);
+    CudaMem<double> max_scratch(CUDA_MAX_MAX_BLOCKS);
 
     xy_max=10.0;
     xy_min=0.0;
@@ -67,7 +67,8 @@ int main(int argc, char ** argv) {
     }
 
     CudaKernelParams sim_params = sim_kernel_params(nx, ny);
-//    CudaKernelParams min_max_params = min_max_kernel_params(nx, ny);
+    CudaKernelParams min_max_params = min_max_kernel_params(mesh_size);
+    CudaKernelParams grayscale_params = grayscale_kernel_params(mesh_size);
 
     CUDA_CHKERR(z.to_device()); CUDA_CHKERR(v.to_device());
 
@@ -84,49 +85,33 @@ int main(int argc, char ** argv) {
                                 sim_params);
         IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
         IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
-//        for (r=1;r<ny-1;r++)  
-//            for (c=1;c<nx-1;c++) {
-//                const double z_val =    IDX2D(z, r,   nx, c);
-//                const double z_x_high = IDX2D(z, r+1, nx, c);
-//                const double z_x_low =  IDX2D(z, r-1, nx, c);
-//                const double z_y_high = IDX2D(z, r,   nx, c+1);
-//                const double z_y_low =  IDX2D(z, r,   nx, c-1);
-//                const double ax = (z_x_high+z_x_high-2.0*z_val)*dx2inv;
-//                const double ay = (z_y_high+z_y_low-2.0*z_val)*dy2inv;
-//                IDX2D(a, r, nx, c) = (ax+ay)/2;
-//            }
-//        for (r=1; r<ny-1; r++)  
-//            for (c=1;c<nx-1;c++) {
-//                IDX2D(v, r, nx, c) = IDX2D(v, r, nx, c) + dt*IDX2D(a, r, nx, c);
-//                IDX2D(z, r, nx, c) = IDX2D(z, r, nx, c) + dt*IDX2D(v, r, nx, c);
-//            }
 
         if (it % frame_skip == 0) {
-            CUDA_CHKERR(z.to_host());
+            launch_min_max_kernel(z.device_ptr(), z.size(),
+                                  min_scratch.device_ptr(), max_scratch.device_ptr(),
+                                  min_max_params);
+            IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
+            IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
+            min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
+            const double mn = min_scratch[0];
+            const double mx = max_scratch[0];
 
-            double mx,mn;
-            mx = -999999;
-            mn = 999999;
-            for (size_t k = 0; k < mesh_size; ++k) {
-                mx = max(mx, z[k]);
-                mn = min(mn, z[k]);
-            }
+            launch_grayscale_kernel(z.device_ptr(), output.device_ptr(), mesh_size, mn, mx,
+                                    grayscale_params);
+            IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
+            IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
+//            CUDA_CHKERR(z.to_host());
+            CUDA_CHKERR(output.to_host());
 
-            for (size_t k=0; k < mesh_size; ++k)
-                output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
-
-//            cuda_min_max(z.device_ptr(), z.size(), min_scratch.device_ptr(), max_scratch.device_ptr());
-//            min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
-//            const double mn = min_scratch[0];
-//            const double mx = max_scratch[0];
-//            cuda_grayscale(z.device_ptr(), output.device_ptr(), mesh_size, mn, mx);
+//            for (size_t k=0; k < mesh_size; ++k)
+//                output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
 
             STOP_CLOCK(simulation);
             START_CLOCK(file_io);
 
             sprintf(filename, "./images/file%05d.png", frame);
             printf("Writing %s\n",filename);    
-            write_png_file(filename,output/*.host_ptr()*/,sz);
+            write_png_file(filename,output.host_ptr(),sz);
 
             STOP_CLOCK(file_io);
             START_CLOCK(simulation);
@@ -135,24 +120,24 @@ int main(int argc, char ** argv) {
         }
     }
     
-    CUDA_CHKERR(z.to_host());
+    launch_min_max_kernel(z.device_ptr(), z.size(),
+                          min_scratch.device_ptr(), max_scratch.device_ptr(),
+                          min_max_params);
+    IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
+    IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
+    min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
+    const double mn = min_scratch[0];
+    const double mx = max_scratch[0];
 
-    double mx,mn;
-    mx = -999999;
-    mn = 999999;
-    for (size_t k = 0; k < mesh_size; ++k) {
-        mx = max(mx, z[k]);
-        mn = min(mn, z[k]);
-    }
+    launch_grayscale_kernel(z.device_ptr(), output.device_ptr(), mesh_size, mn, mx,
+                            grayscale_params);
+    IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
+    IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
+//    CUDA_CHKERR(z.to_host());
+    CUDA_CHKERR(output.to_host());
 
-    for (size_t k = 0; k < mesh_size; ++k)
-        output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
-
-//    cuda_min_max(z.device_ptr(), z.size(), min_scratch.device_ptr(), max_scratch.device_ptr());
-//    min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
-//    const double mn = min_scratch[0];
-//    const double mx = max_scratch[0];
-//    cuda_grayscale(z.device_ptr(), output.device_ptr(), mesh_size, mn, mx);
+//    for (size_t k = 0; k < mesh_size; ++k)
+//        output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
 
     printf("%f, %f\n", mn, mx);
 
@@ -162,7 +147,7 @@ int main(int argc, char ** argv) {
     sprintf(filename, "./images/file%05d.png", it);
     printf("Writing %s\n",filename);    
     //Write out output image using 1D serial pointer
-    write_png_file(filename,output/*.host_ptr()*/,sz);
+    write_png_file(filename,output.host_ptr(),sz);
     STOP_CLOCK(file_io); STOP_CLOCK(total);
 
 #ifdef BENCH

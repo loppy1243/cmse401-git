@@ -49,10 +49,9 @@ void launch_sim_kernel_tiled(double *z, double *v, size_t nx, size_t ny,
                     (z, v, nx, ny, dx2inv, dy2inv, dt);
 }
 
-#define CUDA_MAX_MAX_BLOCKS 1024
 // Compute the min and max of `z` in `scratch_m[0]` and `scratch_M[0]`, respectively.
 // `scratch_m` and `scratch_M` must have size at least gridsize.
-CudaKernelParams min_max_kernel_params(double *z, size_t size, double *scratch_m, double *scratch_M) {
+CudaKernelParams min_max_kernel_params(size_t size) {
     const int warpsize = get_warpSize();
 
     const int blocksize = min(int(size - size%warpsize), get_maxThreadsPerBlock());
@@ -71,7 +70,6 @@ void launch_min_max_kernel(double *z, size_t size, double *scratch_m, double *sc
                                             scratch_m, scratch_M);
 }
 
-#define CUDA_GRAYSCALE_MAX_BLOCKS 1024
 CudaKernelParams grayscale_kernel_params(size_t size) {
     const int blocksize = min(int(size), get_maxThreadsPerBlock());
     const int gridsize = min(int(size/blocksize), CUDA_GRAYSCALE_MAX_BLOCKS);

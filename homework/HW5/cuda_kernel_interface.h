@@ -1,6 +1,9 @@
 #ifndef _CUDA_KERNEL_INTERFACE_H
 #define _CUDA_KERNEL_INTERFACE_H
 
+#define CUDA_MAX_MAX_BLOCKS 1024
+#define CUDA_GRAYSCALE_MAX_BLOCKS 1024
+
 // It has come to my attention that the correct name is "execution context". I don't really
 // care right now, so I'm not changing it.
 struct CudaKernelParams {
