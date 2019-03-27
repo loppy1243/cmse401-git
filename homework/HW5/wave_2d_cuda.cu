@@ -66,9 +66,10 @@ int main(int argc, char ** argv) {
         }
     }
 
-    CudaKernelParams sim_params = cuda_sim_tiled_params(nx, ny);
+    CudaKernelParams sim_params = sim_kernel_params(nx, ny);
+//    CudaKernelParams min_max_params = min_max_kernel_params(nx, ny);
 
-    /*CUDA_CHKERR(z.to_device());*/ CUDA_CHKERR(v.to_device());
+    CUDA_CHKERR(z.to_device()); CUDA_CHKERR(v.to_device());
 
     STOP_CLOCK(setup);
 
@@ -79,12 +80,10 @@ int main(int argc, char ** argv) {
     dy2inv = 1.0/(dy*dy);
 
     for(it=0;it<nt-1;it++) {
-        CUDA_CHKERR(z.to_device());
-        cuda_sim_tiled(z.device_ptr(), v.device_ptr(), nx, ny, dx2inv, dy2inv, dt,
-                       sim_params);
+        launch_sim_kernel_tiled(z.device_ptr(), v.device_ptr(), nx, ny, dx2inv, dy2inv, dt,
+                                sim_params);
         IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
         IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
-        CUDA_CHKERR(z.to_host());
 //        for (r=1;r<ny-1;r++)  
 //            for (c=1;c<nx-1;c++) {
 //                const double z_val =    IDX2D(z, r,   nx, c);
@@ -103,6 +102,8 @@ int main(int argc, char ** argv) {
 //            }
 
         if (it % frame_skip == 0) {
+            CUDA_CHKERR(z.to_host());
+
             double mx,mn;
             mx = -999999;
             mn = 999999;
@@ -134,6 +135,8 @@ int main(int argc, char ** argv) {
         }
     }
     
+    CUDA_CHKERR(z.to_host());
+
     double mx,mn;
     mx = -999999;
     mn = 999999;
