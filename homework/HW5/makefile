@@ -48,7 +48,7 @@ cuda-sim-minmax-grayscale.$(HOSTNAME):
 %.o : %.cu
 	$(CC) $(CFLAGS) -c $<
 
-serial: CC := nvcc
+serial: CC := gcc
 serial: wave_2d_serial.o png_util.o
 	mkdir -p images
 	$(CC) $(CFLAGS) -o serial -lm -lpng16 $^
