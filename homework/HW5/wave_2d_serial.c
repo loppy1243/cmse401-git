@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "png_util.h"
+#include "debug.h"
 #include "bench.h"
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
 #define max(X,Y) ((X) > (Y) ? (X) : (Y))
@@ -60,7 +61,7 @@ int main(int argc, char ** argv) {
     }
     STOP_CLOCK(setup);
 
-    printf("nt=%d, dt=%g, frame_skip=%d, fps=%g\n", nt, dt, frame_skip, 1/(dt*frame_skip));
+    IF_DEBUG(printf("nt=%d, dt=%g, frame_skip=%d, fps=%g\n", nt, dt, frame_skip, 1/(dt*frame_skip));)
 
     START_CLOCK(simulation);
     dx2inv = 1.0/(dx*dx);
@@ -100,7 +101,7 @@ int main(int argc, char ** argv) {
             START_CLOCK(file_io);
 
             sprintf(filename, "./images/file%05d.png", frame);
-            printf("Writing %s\n",filename);    
+            IF_DEBUG(printf("Writing %s\n",filename);)
             write_png_file(filename,output,sz);
 
             STOP_CLOCK(file_io);
@@ -126,7 +127,7 @@ int main(int argc, char ** argv) {
 
     START_CLOCK(file_io);
     sprintf(filename, "./images/file%05d.png", it);
-    printf("Writing %s\n",filename);    
+    IF_DEBUG(printf("Writing %s\n",filename);)
     //Write out output image using 1D serial pointer
     write_png_file(filename,output,sz);
     STOP_CLOCK(file_io); STOP_CLOCK(total);
