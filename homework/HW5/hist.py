@@ -48,7 +48,6 @@ def splot(x, y):
 
 plt.figure(figsize=(7*plot_dims[1], 2*plot_dims[0]))
 
-labels = [node+' '+tset for node, tset in zip(nodes, args.timing_sets)]
 data = [None for _ in nodes]
 for tset in args.timing_sets:
     first = True
@@ -61,7 +60,7 @@ for tset in args.timing_sets:
 
         for i in range(len(nodes)):
             data[i] = times[nodes[i]][tset][field]
-        plt.hist(data, label=labels, histtype='bar')
+        plt.hist(data, label=[node+' '+tset for node in nodes], histtype='bar')
         plt.title(field)
         if first:
             plt.legend()
