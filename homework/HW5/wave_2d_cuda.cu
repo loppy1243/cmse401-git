@@ -42,11 +42,15 @@ int main(int argc, char ** argv) {
 
     CudaMem<double> z(mesh_size);
     CudaMem<double> v(mesh_size);
+#ifdef NO_CUDA_GRAYSCALE
+    unsigned char *output = new unsigned char[mesh_size];
+#else
     CudaMem<unsigned char> output(mesh_size);
-//    unsigned char *output = new unsigned char[mesh_size];
-
+#endif
+#ifndef NO_CUDA_MINMAX
     CudaMem<double> min_scratch(CUDA_MAX_MAX_BLOCKS);
     CudaMem<double> max_scratch(CUDA_MAX_MAX_BLOCKS);
+#endif
 
     xy_max=10.0;
     xy_min=0.0;
@@ -67,14 +71,18 @@ int main(int argc, char ** argv) {
     }
 
     CudaKernelParams sim_params = sim_kernel_params(nx, ny);
+#ifndef NO_CUDA_MINMAX
     CudaKernelParams min_max_params = min_max_kernel_params(mesh_size);
+#endif
+#ifndef NO_CUDA_GRAYSCALE
     CudaKernelParams grayscale_params = grayscale_kernel_params(mesh_size);
+#endif
 
     CUDA_CHKERR(z.to_device()); CUDA_CHKERR(v.to_device());
 
     STOP_CLOCK(setup);
 
-    printf("nt=%d, dt=%g, frame_skip=%d, fps=%g\n", nt, dt, frame_skip, 1/(dt*frame_skip));
+    IF_DEBUG(printf("nt=%d, dt=%g, frame_skip=%d, fps=%g\n", nt, dt, frame_skip, 1/(dt*frame_skip));)
 
     START_CLOCK(simulation);
     dx2inv = 1.0/(dx*dx);
@@ -87,6 +95,14 @@ int main(int argc, char ** argv) {
         IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
 
         if (it % frame_skip == 0) {
+#ifdef NO_CUDA_MINMAX
+            CUDA_CHKERR(z.to_host());
+            double mn = z[0], mx = z[0];
+            for (int k = 0; k < z.size(); ++k) {
+                mn = min(mn, z[k]);
+                mx = max(mx, z[k]);
+            }
+#else
             launch_min_max_kernel(z.device_ptr(), z.size(),
                                   min_scratch.device_ptr(), max_scratch.device_ptr(),
                                   min_max_params);
@@ -95,23 +111,30 @@ int main(int argc, char ** argv) {
             min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
             const double mn = min_scratch[0];
             const double mx = max_scratch[0];
+#endif
 
+#ifdef NO_CUDA_GRAYSCALE
+            CUDA_CHKERR(z.to_host());
+            for (size_t k=0; k < mesh_size; ++k)
+                output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+#else
             launch_grayscale_kernel(z.device_ptr(), output.device_ptr(), mesh_size, mn, mx,
                                     grayscale_params);
             IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
             IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
-//            CUDA_CHKERR(z.to_host());
             CUDA_CHKERR(output.to_host());
-
-//            for (size_t k=0; k < mesh_size; ++k)
-//                output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+#endif
 
             STOP_CLOCK(simulation);
             START_CLOCK(file_io);
 
             sprintf(filename, "./images/file%05d.png", frame);
-            printf("Writing %s\n",filename);    
+            IF_DEBUG(printf("Writing %s\n",filename);)
+#ifdef NO_CUDA_GRAYSCALE
+            write_png_file(filename,output,sz);
+#else
             write_png_file(filename,output.host_ptr(),sz);
+#endif
 
             STOP_CLOCK(file_io);
             START_CLOCK(simulation);
@@ -120,6 +143,14 @@ int main(int argc, char ** argv) {
         }
     }
     
+#ifdef NO_CUDA_MINMAX
+    CUDA_CHKERR(z.to_host());
+    double mn = z[0], mx = z[0];
+    for (int k = 0; k < z.size(); ++k) {
+        mn = min(mn, z[k]);
+        mx = max(mx, z[k]);
+    }
+#else
     launch_min_max_kernel(z.device_ptr(), z.size(),
                           min_scratch.device_ptr(), max_scratch.device_ptr(),
                           min_max_params);
@@ -128,26 +159,31 @@ int main(int argc, char ** argv) {
     min_scratch.to_host(0, 1); max_scratch.to_host(0, 1);
     const double mn = min_scratch[0];
     const double mx = max_scratch[0];
+#endif
+    IF_DEBUG(printf("%f, %f\n", mn, mx);)
 
+#ifdef NO_CUDA_GRAYSCALE
+    CUDA_CHKERR(z.to_host());
+    for (size_t k=0; k < mesh_size; ++k)
+        output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
+#else
     launch_grayscale_kernel(z.device_ptr(), output.device_ptr(), mesh_size, mn, mx,
                             grayscale_params);
     IF_DEBUG(CUDA_CHKERR(cudaGetLastError());)
     IF_DEBUG(CUDA_CHKERR(cudaDeviceSynchronize());)
-//    CUDA_CHKERR(z.to_host());
     CUDA_CHKERR(output.to_host());
-
-//    for (size_t k = 0; k < mesh_size; ++k)
-//        output[k] = (char) round((z[k]-mn)/(mx-mn)*255);
-
-    printf("%f, %f\n", mn, mx);
+#endif
 
     STOP_CLOCK(simulation);
-
     START_CLOCK(file_io);
-    sprintf(filename, "./images/file%05d.png", it);
-    printf("Writing %s\n",filename);    
-    //Write out output image using 1D serial pointer
+
+    sprintf(filename, "./images/file%05d.png", frame);
+    IF_DEBUG(printf("Writing %s\n",filename);)
+#ifdef NO_CUDA_GRAYSCALE
+    write_png_file(filename,output,sz);
+#else
     write_png_file(filename,output.host_ptr(),sz);
+#endif
     STOP_CLOCK(file_io); STOP_CLOCK(total);
 
 #ifdef BENCH

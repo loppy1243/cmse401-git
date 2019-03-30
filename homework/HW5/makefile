@@ -6,6 +6,12 @@ endif
 ifeq ($(origin DEBUG), undefined)
 DEBUG := 0
 endif
+ifeq ($(origin NO_CUDA_MINMAX), undefined)
+NO_CUDA_MINMAX := 0
+endif
+ifeq ($(origin NO_CUDA_GRAYSCALE), undefined)
+NO_CUDA_GRAYSCALE := 0
+endif
 
 ifneq ($(BENCH), 0)
 CFLAGS := $(CFLAGS) -DBENCH
@@ -13,10 +19,29 @@ endif
 ifneq ($(DEBUG), 0)
 CFLAGS := $(CFLAGS) -DDEBUG
 endif
+ifneq ($(NO_CUDA_MINMAX), 0)
+CFLAGS := $(CFLAGS) -DNO_CUDA_MINMAX
+endif
+ifneq ($(NO_CUDA_GRAYSCALE), 0)
+CFLAGS := $(CFLAGS) -DNO_CUDA_GRAYSCALE
+endif
 
 .PHONY: all bench bench_serial bench_cuda images video gif test clean
 
 all: serial cuda
+
+bench: CFLAGS := $(CFLAGS) -DBENCH
+bench: serial cuda-sim.$(HOSTNAME) cuda-sim-minmax.$(HOSTNAME) cuda-sim-minmax-grayscale.$(HOSTNAME)
+
+cuda-sim.$(HOSTNAME):
+	make BENCH=1 NO_CUDA_MINMAX=1 NO_CUDA_GRAYSCALE=1 cuda
+	mv cuda $@
+cuda-sim-minmax.$(HOSTNAME):
+	make BENCH=1 NO_CUDA_GRAYSCALE=1 cuda
+	mv cuda $@
+cuda-sim-minmax-grayscale.$(HOSTNAME):
+	make BENCH=1 cuda
+	mv cuda $@
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
