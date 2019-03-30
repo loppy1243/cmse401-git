@@ -31,8 +31,11 @@ endif
 all: serial cuda
 
 bench: CFLAGS := $(CFLAGS) -DBENCH
-bench: serial cuda-sim.$(HOSTNAME) cuda-sim-minmax.$(HOSTNAME) cuda-sim-minmax-grayscale.$(HOSTNAME)
+bench: serial.$(HOSTNAME) cuda-sim.$(HOSTNAME) cuda-sim-minmax.$(HOSTNAME) cuda-sim-minmax-grayscale.$(HOSTNAME)
 
+serial.$(HOSTNAME):
+	make BENCH=1 serial
+	mv serial $@
 cuda-sim.$(HOSTNAME):
 	make BENCH=1 NO_CUDA_MINMAX=1 NO_CUDA_GRAYSCALE=1 cuda
 	mv cuda $@
