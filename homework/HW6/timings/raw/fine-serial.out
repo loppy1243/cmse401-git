@@ -1,0 +1,30 @@
+BENCHMARKING
+total init edge_comm file_io
+1.795e+01 3.092e-03 1.030e+01 7.635e+00
+BENCHMARKING
+total init edge_comm file_io
+1.785e+01 3.114e-03 1.023e+01 7.606e+00
+BENCHMARKING
+total init edge_comm file_io
+1.794e+01 3.046e-03 1.028e+01 7.649e+00
+BENCHMARKING
+total init edge_comm file_io
+1.805e+01 3.137e-03 1.035e+01 7.685e+00
+BENCHMARKING
+total init edge_comm file_io
+1.802e+01 3.081e-03 1.032e+01 7.686e+00
+BENCHMARKING
+total init edge_comm file_io
+1.793e+01 2.924e-03 1.026e+01 7.653e+00
+BENCHMARKING
+total init edge_comm file_io
+1.787e+01 3.012e-03 1.022e+01 7.641e+00
+BENCHMARKING
+total init edge_comm file_io
+1.799e+01 2.975e-03 1.030e+01 7.670e+00
+BENCHMARKING
+total init edge_comm file_io
+1.796e+01 2.968e-03 1.029e+01 7.659e+00
+BENCHMARKING
+total init edge_comm file_io
+1.794e+01 2.961e-03 1.027e+01 7.661e+00
