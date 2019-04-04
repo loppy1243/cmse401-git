@@ -3,6 +3,7 @@
 #include <png.h>
 #include <mpi.h>
 #include "debug.h"
+#include "bench.h"
 
 #define IDX2D_2(i, j) ((i)*IDX2D_STRIDE + (j))
 #define IDX2D_3(i, j, s) ((i)*(s) + (j))
@@ -103,26 +104,27 @@ void writeworld(char *filename, char *my_world, int sz_x, int sz_y) {
 }
 
 #define IDX2D_STRIDE (sz_x+2)
-void make_world(char **my_world, int sz_x, int sz_y) {
+void make_world(char **my_world, int sz_x, int sz_y, int num_rumors) {
     int full_size_with_borders = (sz_x+2)*(sz_y+2);
     my_world[0] = (char *) malloc(2*full_size_with_borders*sizeof(char));
     my_world[1] = my_world[0] + full_size_with_borders;
     IF_DEBUG(puts("After Allocate");)
 
-    //Inicialize Random World
+    float pop_prob = 0.75;
+    //Initialize Random World
     for (int r=0; r < sz_y+2; r++)
        for (int c=0; c < sz_x+2; c++) {
        float rd = ((float) rand())/(float)RAND_MAX;
            if (rd < pop_prob)
-            my_world[which][IDX2D(r, c)] = 1;
+            my_world[0][IDX2D(r, c)] = 1;
     }
     IF_DEBUG(puts("After Initialize");)
 
     //Pick Rumor Starting location
-    for (int u=0; u < NUM_RUMORS; u++) {
+    for (int u=0; u < num_rumors; u++) {
         int r = (int) ((float)rand())/(float)RAND_MAX*(sz_y+2);
         int c = (int) ((float)rand())/(float)RAND_MAX*(sz_x+2);
-        my_world[which][IDX2D(r, c)] = u+2;
+        my_world[0][IDX2D(r, c)] = u+2;
         IF_DEBUG(printf("Starting a Rumor %d, %d = %d\n", r, c, u+2);)
     }
     IF_DEBUG(puts("After Start location picked");)
@@ -131,6 +133,10 @@ void free_world(char **my_world) { free(my_world[0]); }
 
 #define IDX2D_STRIDE (sz_x+2)
 int main(int argc, char **argv) {
+    INIT_CLOCK(total); INIT_CLOCK(init); INIT_CLOCK(edge_comm); INIT_CLOCK(sim);
+    INIT_CLOCK(file_io);
+
+    START_CLOCK(total); START_CLOCK(init);
     srand(0);
 
     //Simulation Parameters
@@ -139,19 +145,20 @@ int main(int argc, char **argv) {
     char filename[sizeof "./images/file00000.png"];
     int img_count = 0;
 
-    float pop_prob = 0.75;
     float rumor_prob = 0.25;
     int num_loops = 1000;
     int NUM_RUMORS = 7;
 
     int which = 0;
-    char *my_world[2]; make_world(&my_world, sz_x, sz_y);
+    char *my_world[2]; make_world((char **) &my_world, sz_x, sz_y, NUM_RUMORS);
 //    writeworld("start.png", my_world[which], sz_x, sz_y);
+    STOP_CLOCK(init);
 
     //Main Time loop
     for(int t=0; t<num_loops;t++) {
         //Communicate Edges
 
+        START_CLOCK(edge_comm);
         for (int c=1; c<sz_x+1; c++) {
            my_world[which][IDX2D(0, c)] = my_world[which][IDX2D(sz_y, c)];
            my_world[which][IDX2D(sz_y+1, c)] = my_world[which][IDX2D(1, c)];
@@ -160,7 +167,9 @@ int main(int argc, char **argv) {
            my_world[which][IDX2D(r, 0)] = my_world[which][IDX2D(r, sz_x)];
            my_world[which][IDX2D(r, sz_x+1)] = my_world[which][IDX2D(r, 1)];
         }
+        STOP_CLOCK(edge_comm);
 
+        START_CLOCK(sim);
         IF_DEBUG(printf("Step %d\n",t);)
         int rumor_counts[NUM_RUMORS+2];
         for (int r=1; r<sz_y+1; r++) {
@@ -190,19 +199,29 @@ int main(int argc, char **argv) {
             }
         }
         which = !which;
+        STOP_CLOCK(sim);
         if (t%10 == 0) {
+            START_CLOCK(file_io);
             //Send everything back to master for saving.
             sprintf(filename, "./images/file%05d.png", img_count);
             writeworld(filename, my_world[0], sz_x, sz_y);
             img_count++;
+            STOP_CLOCK(file_io);
         }
     }
 
     //Write out output image using 1D serial pointer
     //writeworld("end.png", world_mem, sz_x, sz_y);
     IF_DEBUG(printf("After Loop\n");)
-    free_world(&my_world);
+    free_world((char **) &my_world);
     IF_DEBUG(printf("After Clean up\n");)
+
+    STOP_CLOCK(total);
+
+#ifdef BENCH
+    fputs("BENCHMARKING\ntotal init edge_comm file_io\n", stderr);
+    fprintf(stderr, "%.3e %.3e %.3e %.3e\n", total_time, edge_comm_time, file_io_time, sim_time);
+#endif
 
     return 0;
 }
