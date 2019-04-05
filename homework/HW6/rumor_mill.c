@@ -122,8 +122,8 @@ void make_world(char **my_world, int sz_x, int sz_y, int num_rumors) {
 
     //Pick Rumor Starting location
     for (int u=0; u < num_rumors; u++) {
-        int r = (int) ((float)rand())/(float)RAND_MAX*(sz_y+2);
-        int c = (int) ((float)rand())/(float)RAND_MAX*(sz_x+2);
+        int r = rand()%sz_y + 1;
+        int c = rand()%sz_x + 1;
         my_world[0][IDX2D(r, c)] = u+2;
         IF_DEBUG(printf("Starting a Rumor %d, %d = %d\n", r, c, u+2);)
     }
