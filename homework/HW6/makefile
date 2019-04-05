@@ -14,10 +14,13 @@ ifneq ($(BENCH), 0)
 CFLAGS := $(CFLAGS) -DBENCH
 endif
 
-all: mill 
+all: mill mill.mpi
 
 mill: rumor_mill.c | images
-	mpicc $(CFLAGS) -O3 -l png16 -o mill rumor_mill.c 
+	mpicc $(CFLAGS) -O3 -l png16 -o $@ $<
+
+mill.mpi: rumor_mill.mpi.c | images
+	mpicc $(CFLAGS) -O3 -l png16 -o $@ $<
 
 gif: images
 	convert -delay 20 -loop 0 ./images/file*.png rumors.gif
@@ -28,4 +31,4 @@ clean:
 	@rm rumors.gif
 
 images:
-	mkdir -p images
+	mkdir -p $@
