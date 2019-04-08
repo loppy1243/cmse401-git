@@ -1,0 +1,30 @@
+BENCHMARKING
+total init sim edge_comm file_io
+3.382e+02 9.113e-01 1.273e+01 3.268e+02 3.260e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.388e+02 9.105e-01 1.301e+01 3.275e+02 3.267e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.434e+02 9.304e-01 1.343e+01 3.320e+02 3.308e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.384e+02 9.005e-01 1.342e+01 3.270e+02 3.258e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.389e+02 9.002e-01 1.277e+01 3.275e+02 3.265e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.363e+02 8.819e-01 1.295e+01 3.249e+02 3.241e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.366e+02 9.106e-01 1.277e+01 3.253e+02 3.246e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.368e+02 9.004e-01 1.269e+01 3.254e+02 3.247e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.369e+02 8.803e-01 1.270e+01 3.256e+02 3.249e+02
+BENCHMARKING
+total init sim edge_comm file_io
+3.361e+02 9.004e-01 1.270e+01 3.247e+02 3.241e+02

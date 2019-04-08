@@ -1,0 +1,32 @@
+BENCHMARKING
+total init sim edge_comm file_io
+1.306e+01 9.006e-02 1.456e+00 1.162e+01 1.143e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.320e+01 8.027e-02 1.460e+00 1.172e+01 1.153e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.302e+01 8.020e-02 1.457e+00 1.159e+01 1.145e+01
+srun: Job 14882625 step creation temporarily disabled, retrying
+srun: Step created for job 14882625
+BENCHMARKING
+total init sim edge_comm file_io
+1.353e+01 9.025e-02 1.500e+00 1.209e+01 1.183e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.303e+01 8.027e-02 1.444e+00 1.158e+01 1.145e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.306e+01 8.031e-02 1.466e+00 1.160e+01 1.143e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.306e+01 8.026e-02 1.447e+00 1.157e+01 1.143e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.302e+01 8.027e-02 1.446e+00 1.155e+01 1.142e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.295e+01 8.014e-02 1.444e+00 1.151e+01 1.138e+01
+BENCHMARKING
+total init sim edge_comm file_io
+1.318e+01 9.029e-02 1.511e+00 1.163e+01 1.142e+01
