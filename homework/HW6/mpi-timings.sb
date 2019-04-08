@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#SBATCH --array=0-5 --time=2:00:00 --mem-per-cpu=1G
+
+. load-modules.sh
+
+handler() {
+  rm -rf "$1"
+  exit $2
+}
+
+tmp_prefix=$(mktemp -d)
+trap "handler '$tmp_prefix' 0" EXIT
+trap "handler '$tmp_prefix' 1" INT TERM HUP
+
+y_size=$((500*2**$SLURM_ARRAY_TASK_ID))
+for i in {1..10}; do
+  srun ./mill.mpi "$tmp_prefix" 1000 $y_size
+done 2>timings/raw/mpi-1000x$y_size-$(printf '%.3d' $SLURM_NTASKS).out
+
+js -j $SLURM_JOB_ID
