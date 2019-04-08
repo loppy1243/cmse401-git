@@ -170,10 +170,17 @@ int main(int argc, char **argv) {
     printf("Thread %d: %s:%d\n", MY_MPI_RANK, hostname, pid);
 #endif
 
+    if (argc != 4) {
+        fprintf(stderr, "Usage: %s <prefix> <x_size> <y_size>\n", argv[0]);
+        MPI_Finalize();
+        return 1;
+    }
+
     //Simulation Parameters
-    const int sz_x = 1000;
-    const int sz_y = 500;
-    char filename[sizeof "./images/file00000.png"];
+    char *out_prefix = argv[1];
+    const int sz_x = atoi(argv[2]); // = 1000
+    const int sz_y = atoi(argv[3]); // = 500
+    char *filename = malloc(strlen(out_prefix)*sizeof(char) + sizeof("/file00000.png"));
     int img_count = 0;
 
     const float rumor_prob = 0.25;
@@ -360,7 +367,7 @@ int main(int argc, char **argv) {
                     );
 
                 //Send everything back to master for saving.
-                sprintf(filename, "./images/file%05d.png", img_count);
+                sprintf(filename, "%s/file%05d.png", out_prefix, img_count);
                 writeworld(filename, full_world, sz_x, sz_y);
                 img_count++;
                 STOP_CLOCK(file_io);
@@ -378,14 +385,13 @@ int main(int argc, char **argv) {
     STOP_CLOCK(total);
 
 #ifdef BENCH
-    double times[4] = {total_time, edge_comm_time, file_io_time, sim_time};
-    double avg_times[4];
-    MPI_Reduce(times, avg_times, 4, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+    double times[5] = {total_time, init_time, sim_time, edge_comm_time, file_io_time};
+    double max_times[5];
+    MPI_Reduce(times, max_times, 5, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
     if (MY_MPI_RANK == 0) {
-        fputs("BENCHMARKING\ntotal init edge_comm file_io\n", stderr);
-        for (size_t i = 0; i < 4; ++i) {
-            avg_times[i] /= mpi_world_size;
-            fprintf(stderr, "%s%.3e", i == 0 ? "" : " ", avg_times[i]);
+        fputs("BENCHMARKING\ntotal init sim edge_comm file_io\n", stderr);
+        for (size_t i = 0; i < 5; ++i) {
+            fprintf(stderr, "%s%.3e", i == 0 ? "" : " ", max_times[i]);
         }
         fputc('\n', stderr);
     }
