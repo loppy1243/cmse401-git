@@ -16,19 +16,15 @@ endif
 
 all: mill mill.mpi
 
-mill: rumor_mill.c | images
+mill: rumor_mill.c
 	mpicc $(CFLAGS) -O3 -l png16 -o $@ $<
 
-mill.mpi: rumor_mill.mpi.c | images
+mill.mpi: rumor_mill.mpi.c
 	mpicc $(CFLAGS) -O3 -l png16 -o $@ $<
 
-gif: images
+gif:
 	convert -delay 20 -loop 0 ./images/file*.png rumors.gif
 
 clean:
-	@rm -rf images
 	@rm mill 
 	@rm rumors.gif
-
-images:
-	mkdir -p $@
