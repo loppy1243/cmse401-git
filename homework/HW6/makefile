@@ -49,8 +49,8 @@ $(PLOT_PFX)/fine-serial.pdf: $(TSET_COMP_PFX)/fine-serial.dat | $(PLOT_PFX)
 $(PLOT_PFX)/mpi-scaling.pdf: mpi-timings.plt $(TSET_COMP_PFX)/mpi-avg.dat | $(PLOT_PFX)
 	gnuplot $<
 
-$(TSET_PFX):
-	mkdir -p $(TSET_PFX)
+$(TSET_COMP_PFX):
+	mkdir -p $(TSET_COMP_PFX)
 $(PLOT_PFX):
 	mkdir -p $(PLOT_PFX)
 
