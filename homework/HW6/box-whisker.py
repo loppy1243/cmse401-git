@@ -10,6 +10,7 @@ parser.add_argument('-x', dest='excluded_fields', type=str, action='append',
                     help='exclude the specified field from the plot', default=[])
 parser.add_argument('-o', dest='outfile', type=str, help='output file')
 parser.add_argument('-p', dest='prefix', type=str, help='timing sets prefix')
+parser.add_argument('-s', dest='separate', action='store_true')
 parser.add_argument('timing_sets', type=str, nargs='+',
                     help='timings sets to include in the plot')
 args = parser.parse_args()
@@ -38,23 +39,35 @@ for tset in args.timing_sets:
                 if field in fields:
                     times[tset][field].append(float(val))
 
-plot_dims = (len(args.timing_sets), 1)
+if args.separate:
+    plt.figure(figsize=(1.5*len(fields), 4*len(args.timing_sets)))
+else:
+    plt.figure(figsize=(1.5*len(fields), 2*len(args.timing_sets)))
+
 splot = 1
 
-plt.figure(figsize=(7, 2*plot_dims[0]))
-
-first = True
 for tset in args.timing_sets:
-    plt.subplot(*plot_dims, splot)
-    plt.boxplot(
-        [[times[tset][field][i] for field in fields] for i in range(len(fields))],
-        labels=fields
-    )
+    if args.separate:
+        plt.subplot(2*len(args.timing_sets), 1, 2*splot - 1)
+    else:
+        plt.subplot(len(args.timing_sets), 1, splot)
+    bp = plt.boxplot([times[tset][field] for field in fields], labels=fields)
+    for median_line in bp['medians']:
+        x, y = median_line.get_xydata()[1]
+        plt.annotate("{:.3g}".format(y), (x*1.01, y), fontsize=5)
     plt.title(tset)
     plt.ylabel('Time (s)')
-    if first:
-        plt.legend()
-        first = False
+
+    if args.separate:
+        first = True
+        for i in range(len(fields)):
+            plt.subplot(2*len(args.timing_sets), len(fields), len(fields)*(2*splot-1) + 1 + i)
+            bp = plt.boxplot(times[tset][fields[i]])
+            if first:
+                plt.ylabel('Time (s)')
+                first = False
+
+    splot += 1
 
 plt.tight_layout()
 plt.savefig(args.outfile)

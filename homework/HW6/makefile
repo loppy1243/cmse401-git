@@ -44,8 +44,8 @@ $(TSET_COMP_PFX)/mpi-avg.dat: $(TSET_COMP_PFX)/mpi.dat
 		| awk -e 'FNR == 1 { header = $$0; print; next } p > $$2 { printf "\n\n"; printf "%s\n", header } { print; p = $$2 }' >$@
 
 all-plots: $(PLOT_PFX)/fine-serial.pdf $(PLOT_PFX)/mpi-scaling.pdf
-$(PLOT_PFX)/fine-serial.pdf: $(TSET_COMP_PFX)/fine-serial.dat | $(PLOT_PFX)
-	python box-whisker.py -o $@ -x trial -p $(TSET_COMP_PFX) fine-serial
+$(PLOT_PFX)/fine-serial.pdf: box-whisker.py $(TSET_COMP_PFX)/fine-serial.dat | $(PLOT_PFX)
+	python box-whisker.py -o $@ -s -x trial -p $(TSET_COMP_PFX) fine-serial
 $(PLOT_PFX)/mpi-scaling.pdf: mpi-timings.plt $(TSET_COMP_PFX)/mpi-avg.dat | $(PLOT_PFX)
 	gnuplot $<
 
