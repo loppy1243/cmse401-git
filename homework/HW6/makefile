@@ -45,7 +45,7 @@ $(TSET_COMP_PFX)/mpi-avg.dat: $(TSET_COMP_PFX)/mpi.dat
 
 all-plots: $(PLOT_PFX)/fine-serial.pdf $(PLOT_PFX)/mpi-scaling.pdf
 $(PLOT_PFX)/fine-serial.pdf: $(TSET_COMP_PFX)/fine-serial.dat | $(PLOT_PFX)
-	python hist.py -o $@ -x trial -p $(TSET_COMP_PFX) fine-serial
+	python box-whisker.py -o $@ -x trial -p $(TSET_COMP_PFX) fine-serial
 $(PLOT_PFX)/mpi-scaling.pdf: mpi-timings.plt $(TSET_COMP_PFX)/mpi-avg.dat | $(PLOT_PFX)
 	gnuplot $<
 
