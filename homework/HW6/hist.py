@@ -32,6 +32,8 @@ for tset in args.timing_sets:
             for field in fields:
                 times[tset][field] = []
         for row in reader:
+            if row[0] == "AVG":
+                continue
             for field, val in zip(all_fields, row):
                 if field not in args.excluded_fields:
                     times[tset][field].append(float(val))
