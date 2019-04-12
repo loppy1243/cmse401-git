@@ -24,7 +24,7 @@ for tset in args.timing_sets:
         if fields == []:
             all_fields = next(reader)
             for field in all_fields:
-                if field not in args.excluded_fields:
+                if (len(field) < 3 or field[0:3] != "err") and field not in args.excluded_fields:
                     fields.append(field)
                     times[tset][field] = []
         else:
@@ -32,37 +32,29 @@ for tset in args.timing_sets:
             for field in fields:
                 times[tset][field] = []
         for row in reader:
-            if row[0] == "AVG":
+            if row != [] and row[0] == "AVG":
                 continue
             for field, val in zip(all_fields, row):
-                if field not in args.excluded_fields:
+                if field in fields:
                     times[tset][field].append(float(val))
 
-#plot_dims = (len(fields), len(args.timing_sets))
-plot_dims = (len(fields), 1)
-splot_x, splot_y = 1, 1
-def splot(x, y):
-    return x + (y-1)*plot_dims[1]
+plot_dims = (len(args.timing_sets), 1)
+splot = 1
 
-plt.figure(figsize=(7*plot_dims[1], 2*plot_dims[0]))
+plt.figure(figsize=(7, 2*plot_dims[0]))
 
+first = True
 for tset in args.timing_sets:
-    first = True
-    ax = None
-    for field in fields:
-        if first:
-            ax = plt.subplot(*plot_dims, splot(splot_x, splot_y))
-        else:
-            plt.subplot(*plot_dims, splot(splot_x, splot_y), sharex=ax)
-
-        plt.hist(times[tset][field], label=tset, histtype='bar')
-        plt.title(field)
-        if first:
-            plt.legend()
-        splot_y = splot_y % (plot_dims[0]) + 1
+    plt.subplot(*plot_dims, splot)
+    plt.boxplot(
+        [[times[tset][field][i] for field in fields] for i in range(len(fields))],
+        labels=fields
+    )
+    plt.title(tset)
+    plt.ylabel('Time (s)')
+    if first:
+        plt.legend()
         first = False
-    splot_x = splot_x % (plot_dims[1]) + 1
-plt.xlabel('Time (s)')
 
 plt.tight_layout()
 plt.savefig(args.outfile)
