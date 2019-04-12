@@ -10,13 +10,13 @@ BEGIN {
   split($2, times, "[ms]")
   t = (times[1] + 0)*60.0 + (times[2] + 0)
   avg += t
-  stderr += t^2
+  stderr += (t+0)^2
   print trial, t | column_cmd
 }
 
 END {
   avg /= trial
-  stderr = sqrt(stdev/trial - avg^2)
+  stderr = sqrt((stderr/trial - avg^2)/trial)
 
   printf "AVG " | column_cmd
   print avg, stderr | column_cmd
