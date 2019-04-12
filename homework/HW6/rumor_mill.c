@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
     STOP_CLOCK(total);
 
 #ifdef BENCH
-    fputs("BENCHMARKING\ntotal init sim_time edge_comm file_io\n", stderr);
+    fputs("BENCHMARKING\ntotal init sim edge_comm file_io\n", stderr);
     fprintf(
         stderr, "%.3e %.3e %.3e %.3e %.3e\n",
         total_time, init_time, sim_time, edge_comm_time, file_io_time
