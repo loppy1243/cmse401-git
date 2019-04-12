@@ -1,0 +1,10 @@
+#!/bin/bash
+
+#SBATCH --job-name=mill --time=00:01:00
+#SBATCH --ntasks=32 --mem-per-cpu=1G
+
+. load-modules.sh
+
+srun ./mill.mpi
+
+js -j $SLURM_JOB_ID
