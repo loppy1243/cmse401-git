@@ -1,4 +1,5 @@
-All instructions herein assume being on an HPCC dev thread.
+All instructions herein assume being on an HPCC dev node.
+
 # Building
 ```bash
 # Make serial and MPI binaries
@@ -56,6 +57,7 @@ The original serial program was modified to use MPI mainly in the following five
 # Timing
 ## Categories
 The timing categories are:
+
 - `total`: The total time.
 - `init`: The time spent in initialization.
 - `sim`: The time in the main loop devoted to the simulation itself.
@@ -70,7 +72,8 @@ To generate the serial timing data:
 ./mill 2>timings/raw/fine-serial.out
 make plots/fine-serial.pdf
 ```
-My trials are provided in `timings/compiled/fine-serial.out`. On average (in seconds):
+My trials were performed on the HPCC `dev-intel14` and are provided in
+`timings/compiled/fine-serial.out`. On average (in seconds):
 ```
 total       init               sim          edge_comm        file_io
 18.87+-0.07 0.007000+-0.000041 8.063+-0.031 0.00349+-0.00011 10.80+-0.04
@@ -91,13 +94,13 @@ make plots/mpi-scaling.pdf
 ```
 Note that this creates a slew of SLURM jobs.
 
-My trials are provided in `timings/compiled/mpi.dat`, with averages extracted into
-`timings/compiled/mpi-avg.dat`. I had some weird errors crop up when doing these timings;
-specifically, _the configurations_ `threads=64` _and_ `y_size=500,2000,1000` _always fail_.
-*Occasionally* other configurations will fail in the same way, and I believe I had more
-consistent trouble when I was trying to do 128 threads (but I stopped doing that, so I don't
-know). This was across hours and hours of time, since I ended up doing redoing timings several
-times. The error is always (for example):
+My trials were performed on the HPCC `dev-intel14` and are provided in
+`timings/compiled/mpi.dat`, with averages extracted into `timings/compiled/mpi-avg.dat`. I had
+some weird errors crop up when doing these timings; specifically, _the configurations_
+`threads=64` _and_ `y_size=500,2000,1000` _always fail_.  *Occasionally* other configurations
+will fail in the same way, and I believe I had more consistent trouble when I was trying to do
+128 threads (but I stopped doing that, so I don't know). This was across hours and hours of
+time, since I ended up redoing timings several times. The error is always (for example):
 ```
 *** An error occurred in MPI_Recv
 *** reported by process [1533739017,63]
@@ -106,7 +109,8 @@ times. The error is always (for example):
 *** MPI_ERRORS_ARE_FATAL (processes in this communicator will now abort,
 ***    and potentially your MPI job)
 ```
-I have no clue; the output visualization appears to be correct in the successful cases.
+This would potentially make sense if it was only consistent for a given configuration... but
+it's not, so I really have no clue.
 
 The data is visualized with `plots/mpi-scaling.pdf`, which gives a matrix of scatter plots of
 average time vs. number of threads; columns correspond to timing categories, and rows
@@ -115,8 +119,8 @@ correspond to simulation size.
 
 We see what appears to be an exponential decay in the total amount of time, with the maximum
 of 64 threads always giving the best time on average but significant gains only up to about 8
-threads. Note high variance across trials and that, while the thread-scaling is independent of
-size, the absolute amount of time appears to scale linearly in the array size.
+threads. Note the high variance across trials and that, while the thread-scaling is
+independent of size, the absolute amount of time appears to scale linearly in the array size.
 
 Initialization is pratically 0 until about 16 threads are involved, at which point it
 increases in what appears to be a linear fashion.
@@ -132,3 +136,15 @@ Output is the most erratic, but I believe this to be dumb luck: we can sort of s
 in the data, which can be explained as some sets of trials only being allocated one node (and
 so have a lower time) and some being allocated multiple. We again see linear scaling in the
 simulation size, and it makes up the last third of the total time.
+
+# Potential Improvements
+The code could be furthered improved mostly through improving the interthread communication.
+In particular, boundaries only need to communicate what changes. This could be accomplished by
+allowing process to launch into a receive loop, receiving changed points until they get a
+message telling them to stop. This would create more overhead when the boundaries are changing
+a lot, but I reckon that is the less common than when the boundaries are static.  The chunks
+that each thread works on could also be changed to span both rows and columns, which would
+give better scaling for larger simulation sizes.
+
+We could also imagine explicitly adding "local" parallelization, through either say CUDA or
+OpenMP, which would allow each thread to accomplish more work.
